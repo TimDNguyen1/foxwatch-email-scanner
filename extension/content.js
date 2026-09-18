@@ -1,0 +1,1 @@
+console.log("FoxWatch extension loaded on Gmail.");
