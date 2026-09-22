@@ -3,7 +3,7 @@
   "name": "FoxWatch Email Scammer",
   "version": "0.1.0",
   "description": "Helps detect potentially suspicious or phishing emails in Gmail.",
-  "permissions": [],
+  "permissions": ["activeTab", "storage"],
   "content_scripts": [
     {
       "matches": [ "https://mail.google.com/*" ],
