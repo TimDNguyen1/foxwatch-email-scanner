@@ -1,6 +1,5 @@
 console.log("FoxWatch extension loaded on Gmail.");
 
-//get email content: sender, subject, content
 function getCurrentEmail() {
     const subjectElement = document.querySelector("h2.hP");
     const senderElement = document.querySelector(".gD");
@@ -10,42 +9,72 @@ function getCurrentEmail() {
         return null;
     }
 
-    //Added const for links, searches from bodyElement - Dang
+    //gets links in body of email into an array - Dang
     const linkElements = bodyElement.querySelectorAll("a");
+
+    const links = Array.from(linkElements)
+        .map(link => {
+            // Prefer the real destination if Gmail wrapped/redirected it
+            const safeUrl = link.getAttribute("data-saferedirecturl");
+            if (safeUrl) return safeUrl;
+
+            // Fall back to the raw href attribute
+            //this will resolve blank links in extraction
+            return link.getAttribute("href");
+        })
+        //filters out any elements that are not URLs
+        .filter(href => href && !href.startsWith("#") && !href.startsWith("javascript:"));
 
     return {
         subject: subjectElement.innerText,
         sender: senderElement.getAttribute("email"),
         body: bodyElement.innerText,
-        //Added links to return object - Dang
-        links: Array.from(linkElements).map(link => link.href)
+        links: links
     };
 }
 
+//actually checks whether an email is open or not
+function isEmailOpenByHash() {
+    return /#.+\/.+/.test(window.location.hash);
+}
+
 let lastEmail = "";
+let debounceTimer = null;
 
-//this block checks when different email is opened
-const observer = new MutationObserver(() => {
-    const email = getCurrentEmail();
+function handleMutation() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        if (!isEmailOpenByHash()) {
+            // Explicitly closed — reset state so a re-open of the
+            // same email is treated as new next time.
+            if (lastEmail !== "") {
+                console.log("Email closed — resetting state");
+                lastEmail = "";
+            }
+            return;
+        }
 
-    if (!email) {
-        return;
-    }
+        const email = getCurrentEmail();
+        if (!email) return;
 
-    const emailIdentifier =
-        email.sender + email.subject + email.body;
+        const emailIdentifier = email.sender + email.subject + email.body;
 
-    if (emailIdentifier === lastEmail) {
-        return;
-    }
+        if (emailIdentifier === lastEmail) {
+            return; // true duplicate, ignore
+        }
 
-    lastEmail = emailIdentifier;
+        lastEmail = emailIdentifier;
+        console.log("NEW EMAIL DETECTED:");
+        console.log(email);
+    }, 150); // debounce rapid-fire mutations during DOM transitions
+}
 
-    console.log("Email detected:");
-    console.log(email);
-});
+const observer = new MutationObserver(handleMutation);
 
 observer.observe(document.body, {
     childList: true,
     subtree: true
 });
+
+// Also catch navigation that doesn't trigger a body mutation
+window.addEventListener("hashchange", handleMutation);
