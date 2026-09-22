@@ -5,19 +5,20 @@ function getCurrentEmail() {
     const subjectElement = document.querySelector("h2.hP");
     const senderElement = document.querySelector(".gD");
     const bodyElement = document.querySelector(".a3s");
-    //Added const for links, searches from bodyElement - Dang
-    const linkElement = document.querySelectorAll("a");
 
     if (!subjectElement || !senderElement || !bodyElement) {
         return null;
     }
+
+    //Added const for links, searches from bodyElement - Dang
+    const linkElements = bodyElement.querySelectorAll("a");
 
     return {
         subject: subjectElement.innerText,
         sender: senderElement.getAttribute("email"),
         body: bodyElement.innerText,
         //Added links to return object - Dang
-        links: Array.from(linkElement).map(link => link.href)
+        links: Array.from(linkElements).map(link => link.href)
     };
 }
 
