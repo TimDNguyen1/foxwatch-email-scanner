@@ -6,7 +6,7 @@ function getCurrentEmail() {
     const senderElement = document.querySelector(".gD");
     const bodyElement = document.querySelector(".a3s");
     //Added const for links, searches from bodyElement - Dang
-    const linkElement = document.querySelectorAll("a");
+    const linkElements = bodyElement.querySelectorAll("a");
 
     if (!subjectElement || !senderElement || !bodyElement) {
         return null;
@@ -17,7 +17,7 @@ function getCurrentEmail() {
         sender: senderElement.getAttribute("email"),
         body: bodyElement.innerText,
         //Added links to return object - Dang
-        links: Array.from(linkElement).map(link => link.href)
+        links: Array.from(linkElements).map(link => link.href)
     };
 }
 
