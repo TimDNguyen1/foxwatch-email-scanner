@@ -9,6 +9,7 @@ function getCurrentEmail() {
         return null;
     }
 
+
     //gets links in body of email into an array - Dang
     const linkElements = bodyElement.querySelectorAll("a");
 
@@ -38,12 +39,45 @@ function isEmailOpenByHash() {
     return /#.+\/.+/.test(window.location.hash);
 }
 
+// NEW: pulls the actual message ID out of the hash - tim
+function getCurrentMessageId() {
+    const match = window.location.hash.match(/#.+\/(.+)/);
+    return match ? match[1] : null;
+}
+
+// NEW: cache read/write helpers - tim
+async function getCachedResult(messageId) {
+    const key = `foxwatch_${messageId}`;
+    const stored = await chrome.storage.local.get(key);
+    return stored[key] || null;
+}
+
+async function cacheResult(messageId, data) {
+    const key = `foxwatch_${messageId}`;
+    await chrome.storage.local.set({
+        [key]: { data, checkedAt: Date.now() }
+    });
+}
+
+//TODO: replace with real backend call once it's ready. This is a fake test
+//Simulates "analysis" taking a moment, and returns a fake score/reason
+//so we can verify the cache round-trip works end to end.
+async function fakeAnalyzeEmail(email) {
+    console.log("Running FAKE analysis (no backend yet)...");
+    await new Promise(resolve => setTimeout(resolve, 500)); // simulate delay
+    return {
+        score: Math.floor(Math.random() * 10) + 1, // random 1-10 so you can see it's "fresh" each time cache is empty
+        reasons: ["This is a stubbed result for testing caching only"]
+    };
+}
+
+
 let lastEmail = "";
 let debounceTimer = null;
 
 function handleMutation() {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
+    debounceTimer = setTimeout( async() => {
         if (!isEmailOpenByHash()) {
             // Explicitly closed — reset state so a re-open of the
             // same email is treated as new next time.
@@ -64,8 +98,29 @@ function handleMutation() {
         }
 
         lastEmail = emailIdentifier;
-        console.log("NEW EMAIL DETECTED:");
+
+        // NEW: check cache before treating this as something to analyze - tim
+        const messageId = getCurrentMessageId();
+        const cached = messageId ? await getCachedResult(messageId) : null;
+
+        if (cached) {
+            console.log("✅ CACHE HIT for message:", messageId, cached.data);
+            return;
+        }
+
+        console.log("❌ CACHE MISS — analyzing message:", messageId);
+
+        // Stand-in for real backend call
+        const result = await fakeAnalyzeEmail(email);
+
+        if (messageId) {
+            await cacheResult(messageId, result);
+        }
+        console.log("NEW EMAIL ANALYZED, ", result);
         console.log(email);
+
+        //TODO later: actually call your backend/analysis here, then:
+        // if (messageId) await cacheResult(messageId, analysisResult);
     }, 150); // debounce rapid-fire mutations during DOM transitions
 }
 

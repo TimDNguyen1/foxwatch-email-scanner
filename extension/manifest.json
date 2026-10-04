@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "FoxWatch Email Scammer",
+  "name": "FoxWatch Email Scanner",
   "version": "0.1.0",
   "description": "Helps detect potentially suspicious or phishing emails in Gmail.",
   "permissions": ["activeTab", "storage"],
