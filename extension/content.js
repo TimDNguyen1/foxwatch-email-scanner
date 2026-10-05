@@ -1,5 +1,22 @@
 console.log("FoxWatch extension loaded on Gmail.");
 
+let analyzerEnabled = true;
+
+chrome.storage.local.get(["analyzerEnabled"], (result) => {
+    analyzerEnabled = result.analyzerEnabled !== false;
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local" && changes.analyzerEnabled) {
+        analyzerEnabled = changes.analyzerEnabled.newValue !== false;
+
+        console.log(
+            "FoxWatch Analyzer:",
+            analyzerEnabled ? "ON" : "OFF"
+        );
+    }
+});
+
 function getCurrentEmail() {
     const subjectElement = document.querySelector("h2.hP");
     const senderElement = document.querySelector(".gD");
@@ -42,7 +59,13 @@ let lastEmail = "";
 let debounceTimer = null;
 
 function handleMutation() {
+
+    if (!analyzerEnabled) {
+        return;
+    }
+
     clearTimeout(debounceTimer);
+
     debounceTimer = setTimeout(() => {
         if (!isEmailOpenByHash()) {
             // Explicitly closed — reset state so a re-open of the
@@ -66,6 +89,15 @@ function handleMutation() {
         lastEmail = emailIdentifier;
         console.log("NEW EMAIL DETECTED:");
         console.log(email);
+
+
+        // - Osman
+        // Saves the subject of the newly detected email
+        // so the FoxWatch dashboard can display the current email.
+        chrome.storage.local.set({
+            currentEmail: email.subject
+        });
+
     }, 150); // debounce rapid-fire mutations during DOM transitions
 }
 

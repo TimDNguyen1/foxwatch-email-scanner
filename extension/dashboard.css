@@ -1,0 +1,222 @@
+﻿* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    width: 360px;
+    min-height: 500px;
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #1f2937;
+}
+
+.dashboard {
+    width: 100%;
+    min-height: 500px;
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+.header {
+    padding: 22px 24px 18px;
+    background: #ffffff;
+    border-bottom: 1px solid #d9dee7;
+}
+
+.logo {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.subtitle {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+
+/* =========================
+   SECTIONS
+   ========================= */
+
+.section {
+    margin: 12px 16px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #dfe4ec;
+    border-radius: 10px;
+}
+
+.section-label {
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: #6b7280;
+}
+
+
+/* =========================
+   ANALYZER
+   ========================= */
+
+.analyzer-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .analyzer-section .section-label {
+        margin: 0;
+        margin-right: auto;
+    }
+
+
+/* =========================
+   ON/OFF SWITCH
+   ========================= */
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 25px;
+}
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #9ca3af;
+    border-radius: 25px;
+    transition: 0.2s;
+}
+
+    .slider:before {
+        content: "";
+        position: absolute;
+        width: 19px;
+        height: 19px;
+        left: 3px;
+        top: 3px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.2s;
+    }
+
+.switch input:checked + .slider {
+    background-color: #2196f3;
+}
+
+    .switch input:checked + .slider:before {
+        transform: translateX(21px);
+    }
+
+.status-text {
+    width: 25px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2196f3;
+}
+
+
+/* =========================
+   CURRENT EMAIL
+   ========================= */
+
+.email-subject {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #111827;
+    word-break: break-word;
+}
+
+
+/* =========================
+   RISK
+   ========================= */
+
+.risk-container {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.risk-score {
+    margin-top: 7px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+
+/* =========================
+   RISK DOTS
+   ========================= */
+
+.risk-dot,
+.stat-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.safe {
+    background-color: #22c55e;
+}
+
+.medium {
+    background-color: #eab308;
+}
+
+.bad {
+    background-color: #ef4444;
+}
+
+
+/* =========================
+   STATISTICS
+   ========================= */
+
+.statistics {
+    padding-bottom: 10px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #edf0f4;
+    font-size: 14px;
+}
+
+.total-row {
+    border-top: none;
+    padding-top: 0;
+}
+
+.stat-name {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.stat-row strong {
+    font-size: 15px;
+}
