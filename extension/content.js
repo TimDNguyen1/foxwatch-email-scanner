@@ -89,21 +89,21 @@ async function sendVirusTotalUrl(selectedUrl) {
     const formData = new URLSearchParams();
     formData.append("url", selectedUrl);
 
-    const response = await fetch(VT_endpoint, {
+    const options = {
         method: "POST",
         headers: {
+            accept: "application/json",
             "x-apikey": VT_API_Key,
             "Content-Type": "application/x-www-form-urlencoded"
         },
-        body: formData.toString()
-    });
+        body: formData
+    };
+
+    const response = await fetch(VT_endpoint, options);
 
     if (!response.ok) {
         throw new Error(`VirusTotal API request failed with status ${response.status}`);
     }
-
-    const data = await response.json();
-    return data.data.id; // Return the ID of the submitted URL for tracking
 }
 
 // Function to scan a list of URLs and store the results
