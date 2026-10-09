@@ -81,7 +81,7 @@ observer.observe(document.body, {
 window.addEventListener("hashchange", handleMutation);
 
 // Dang - Functions to run virustotal scan
-const VT_API_Key = "f821ba9e12df3003de6f0b1c878bf5a52b05a67240d710adb1e7f2957a09ea5e";
+const VT_API_Key = " ";
 const VT_endpoint = "https://www.virustotal.com/api/v3/urls";
 
 // Function to send a URL to VirusTotal for scanning
