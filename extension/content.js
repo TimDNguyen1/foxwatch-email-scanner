@@ -84,6 +84,7 @@ window.addEventListener("hashchange", handleMutation);
 const VT_API_Key = "f821ba9e12df3003de6f0b1c878bf5a52b05a67240d710adb1e7f2957a09ea5e";
 const VT_endpoint = "https://www.virustotal.com/api/v3/urls";
 
+// Function to send a URL to VirusTotal for scanning
 async function sendVirusTotalUrl(selectedUrl) {
     const formData = new URLSearchParams();
     formData.append("url", selectedUrl);
@@ -105,7 +106,10 @@ async function sendVirusTotalUrl(selectedUrl) {
     return data.data.id; // Return the ID of the submitted URL for tracking
 }
 
+// Function to scan a list of URLs and store the results
 async function scanUrlList(urlList) {
+    const scanResults = [];
+
     for (const url of urlList) {
         try {
             const submittingLink = await sendVirusTotalUrl(url);
