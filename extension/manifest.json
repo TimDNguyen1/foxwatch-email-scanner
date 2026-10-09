@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "description": "Helps detect potentially suspicious or phishing emails in Gmail.",
   "permissions": ["activeTab", "storage"],
+  "host_permissions": [
+    "https://virustotal.com*"
+  ],
   "content_scripts": [
     {
       "matches": [ "https://mail.google.com/*" ],

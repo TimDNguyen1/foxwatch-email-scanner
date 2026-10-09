@@ -55,7 +55,7 @@ function handleMutation() {
         }
 
         const email = getCurrentEmail();
-        virusTotalScan(email.links); //Dang - call virustotal scan function with links in email
+        scanUrlList(email.links); // Dang - scan links in email body
         if (!email) return;
 
         const emailIdentifier = email.sender + email.subject + email.body;
@@ -80,43 +80,51 @@ observer.observe(document.body, {
 // Also catch navigation that doesn't trigger a body mutation
 window.addEventListener("hashchange", handleMutation);
 
-//Dang - Function to run virustotal scan
-function virusTotalScan (urlList) {
-    const VT_API_Key = "f821ba9e12df3003de6f0b1c878bf5a52b05a67240d710adb1e7f2957a09ea5e";
-    const VT_endpoint = "https://www.virustotal.com/api/v3/urls";
+//Dang - Functions to run virustotal scan
+const VT_API_Key = "f821ba9e12df3003de6f0b1c878bf5a52b05a67240d710adb1e7f2957a09ea5e";
+const VT_endpoint = "https://www.virustotal.com/api/v3/urls";
 
-    async function sendVirusTotalUrl(selectedUrl) {
-        try {
-            const response = await fetch(VT_endpoint, {
-                method: 'POST',
-                headers: {
-                    accept: 'applications/json',
-                    'x-apikey': 'VT_API_Key',
-                    'content-type': 'application/x-www-form-urlencoded' 
-                },
-                body: 'url=${encodeURIComponent(selectedUrl))}'
-            });
+async function sendVirusTotalUrl(selectedUrl) {
+    const formData = new URLSearchParams();
+    formData.append("url", selectedUrl);
 
-            const data = await response.json();
-            if (response.ok) {
-                console.log('VirusTotal scan submitted successfully:', data);
-            } 
-            else {
-                console.error('Error submitting VirusTotal scan:', data);
-            }
+    const response = await fetch(VT_endpoint, {
+        method: "POST",
+        headers: {
+            "x-apikey": VT_API_Key,
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: formData.toString()
+    });
 
-        }
-
-        catch (error) {
-            console.error('Error submitting VirusTotal scan:', error);
-        }
+    if (!response.ok) {
+        throw new Error(`VirusTotal API request failed with status ${response.status}`);
     }
 
-    async function scanUrlList(urlList) {
-        for (const url of urlList) {
-            await sendVirusTotalUrl(url);
-            await new Promise(resolve => setTimeout(resolve, 15000)); //Wait for 15 seconds before the next request, 4 requests per minute limit
-        }
-    }
+    const data = await response.json();
+    return data.data.id; // Return the ID of the submitted URL for tracking
 }
+
+async function scanUrlList(urlList) {
+    for (const url of urlList) {
+        try {
+            const submittingLink = await sendVirusTotalUrl(url);
+
+            scanResults.push({
+                url: url,
+                status: 'submitted',
+                submittedLink: submittingLink
+            });
+        }
+        catch (error) {
+            scanResults.push({
+                url: url,
+                status: 'error',
+                error: error.message
+            });
+        }
+    }
+    return scanResults;
+}
+
 
