@@ -5,7 +5,7 @@
   "description": "Helps detect potentially suspicious or phishing emails in Gmail.",
   "permissions": ["activeTab", "storage"],
   "host_permissions": [
-    "https://virustotal.com*"
+    "https://www.virustotal.com/*"
   ],
   "content_scripts": [
     {
