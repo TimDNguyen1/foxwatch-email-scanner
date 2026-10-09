@@ -80,7 +80,7 @@ observer.observe(document.body, {
 // Also catch navigation that doesn't trigger a body mutation
 window.addEventListener("hashchange", handleMutation);
 
-//Dang - Functions to run virustotal scan
+// Dang - Functions to run virustotal scan
 const VT_API_Key = "f821ba9e12df3003de6f0b1c878bf5a52b05a67240d710adb1e7f2957a09ea5e";
 const VT_endpoint = "https://www.virustotal.com/api/v3/urls";
 
@@ -123,6 +123,10 @@ async function scanUrlList(urlList) {
                 error: error.message
             });
         }
+
+        setTimeout(() => {
+            console.log("Waiting 15 seconds before next scan to avoid rate limiting...");
+        }, 15000); // Wait for 15 seconds before the next scan
     }
     return scanResults;
 }
