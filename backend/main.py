@@ -15,15 +15,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dang - Define the request model for URL scanning
-class URLRequest(BaseModel):
-    url: str
-
 @app.get("/")
 def home():
     return {"message": "FoxWatch backend is running!"}
 
-
+# Dang - Define the request model for URL scanning
+class URLRequest(BaseModel):
+    url: str
 
 # Dang - VirusTotal API integration
 url = "https://www.virustotal.com/api/v3/urls"
