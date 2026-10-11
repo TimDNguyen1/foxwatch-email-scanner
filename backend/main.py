@@ -18,6 +18,11 @@ headers = {
     "content-type": "application/x-www-form-urlencoded"
 }
 
-respone = requests.post(url, data=payload, headers=headers)
+response = requests.post(url, data=payload, headers=headers)
 
-print(respone.text)
+if response.status_code == 200:
+    print("Request successful!")
+    print(response.text())
+else:
+    print("Request failed with status code:", response.status_code)
+    print(response.text())
