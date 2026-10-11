@@ -1,7 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import requests
+import httpx
 
-
+# Dang - Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Dang - Allow all origins for testing purposes, needs to be replaced with specific origins in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app = FastAPI()
 
