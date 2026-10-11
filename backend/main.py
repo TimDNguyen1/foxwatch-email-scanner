@@ -4,6 +4,8 @@ from pydantic import BaseModel
 import requests
 import httpx
 
+app = FastAPI()
+
 # Dang - Enable CORS
 app.add_middleware(
     CORSMiddleware,
@@ -12,8 +14,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app = FastAPI()
 
 @app.get("/")
 def home():
