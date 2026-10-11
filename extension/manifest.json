@@ -3,9 +3,9 @@
   "name": "FoxWatch Email Scammer",
   "version": "0.1.0",
   "description": "Helps detect potentially suspicious or phishing emails in Gmail.",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "nativeMessaging"],
   "host_permissions": [
-    "https://www.virustotal.com/*"
+    "http://localhost:3000/*"
   ],
   "content_scripts": [
     {
