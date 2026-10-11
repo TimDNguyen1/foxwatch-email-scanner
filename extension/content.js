@@ -80,27 +80,26 @@ observer.observe(document.body, {
 // Also catch navigation that doesn't trigger a body mutation
 window.addEventListener("hashchange", handleMutation);
 
-// Dang - Functions to run virustotal scan
-
-// Function to send a URL to VirusTotal for scanning
+// Dang - Function to send a URL to backend for VirusTotal scanning
 async function sendVirusTotalUrl(selectedUrl) {
-    const formData = new URLSearchParams();
-    formData.append("url", selectedUrl);
+    try {
+        const response = await fetch('http://localhost:3000/scan-url', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: selectedUrl })
+        });
 
-    const options = {
-        method: "POST",
-        headers: {
-            accept: "application/json",
-            "x-apikey": VT_API_Key,
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: formData
-    };
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
 
-    const response = await fetch(VT_endpoint, options);
-
-    if (!response.ok) {
-        throw new Error(`VirusTotal API request failed with status ${response.status}`);
+        const data = await response.json();
+        return data.submittingLink;
+    } catch (error) {
+        console.error("Error sending URL to VirusTotal:", error);
+        throw error;
     }
 }
 
@@ -110,20 +109,11 @@ async function scanUrlList(urlList) {
 
     for (const url of urlList) {
         try {
-            const submittingLink = await sendVirusTotalUrl(url);
-
-            scanResults.push({
-                url: url,
-                status: 'submitted',
-                submittedLink: submittingLink
-            });
-        }
-        catch (error) {
-            scanResults.push({
-                url: url,
-                status: 'error',
-                error: error.message
-            });
+            const result = await sendVirusTotalUrl(url);
+            scanResults.push({ url, result });
+            console.log(`Scanned URL: ${url}, Result: ${result}`);
+        } catch (error) {
+            console.error(`Failed to scan URL: ${url}`, error);
         }
 
         setTimeout(() => {
