@@ -123,4 +123,3 @@ async function scanUrlList(urlList) {
     return scanResults;
 }
 
-

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import uvicorn
 import requests
 import httpx
 
@@ -42,3 +43,7 @@ async def virustotal_scan(url_to_scan: URLRequest):
         return {"message": "Request successful!", "data": response.json()}
     else:
         return {"message": "Request failed", "status_code": response.status_code, "error": response.text}
+
+# Dang - uvicorn server configuration
+if __name__ == "__main__":
+    uvicorn.run(app, host="localhost", port=3000, reload=True)
