@@ -1,15 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
 import uvicorn
 import httpx
 import os
 import asyncio
 
+# Dang - Load environment variables from .env file
+load_dotenv()
+
 app = FastAPI()
 
 # Dang - CORS configuration
-origins = ["https://mail.google.com"]
+origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
