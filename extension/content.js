@@ -1,5 +1,23 @@
 console.log("FoxWatch extension loaded on Gmail.");
 
+let analyzerEnabled = true;
+
+chrome.storage.local.get(["analyzerEnabled"], (result) => {
+    analyzerEnabled = result.analyzerEnabled !== false;
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local" && changes.analyzerEnabled) {
+        analyzerEnabled = changes.analyzerEnabled.newValue !== false;
+        lastEmail = "";
+
+        console.log(
+            "FoxWatch Analyzer:",
+            analyzerEnabled ? "ON" : "OFF"
+        );
+    }
+});
+
 function unwrapGoogleUrl(rawUrl) {
     try {
         const parsed = new URL(rawUrl);
@@ -76,6 +94,11 @@ let debounceTimer = null;
 const inFlight = new Set();
 
 function handleMutation() {
+
+    if (!analyzerEnabled) {
+        return;
+    }
+
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout( async() => {
         if (!isEmailOpenByHash()) {
@@ -99,6 +122,13 @@ function handleMutation() {
         }
 
         lastEmail = emailIdentifier;
+
+        // - Osman
+        // Saves the subject of the newly detected email
+        // so the FoxWatch dashboard can display the current email.
+        chrome.storage.local.set({
+            currentEmail: email.subject
+        });
 
 
         const messageId = getCurrentMessageId();
