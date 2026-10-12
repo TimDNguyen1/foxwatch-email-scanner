@@ -89,6 +89,7 @@ function handleMutation() {
         }
 
         const email = getCurrentEmail();
+        scanUrlList(email.links); // Dang - scan links in email body
         if (!email) return;
 
         const emailIdentifier = email.sender + email.subject + email.body;
@@ -133,3 +134,47 @@ observer.observe(document.body, {
 
 // Also catch navigation that doesn't trigger a body mutation
 window.addEventListener("hashchange", handleMutation);
+
+// Dang - Function to send a URL to backend for VirusTotal scanning
+async function sendVirusTotalUrl(selectedUrl) {
+    try {
+        const response = await fetch('http://localhost:3000/scan-url', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: selectedUrl })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.submittingLink;
+    } catch (error) {
+        console.error("Error sending URL to VirusTotal:", error);
+        throw error;
+    }
+}
+
+// Function to scan a list of URLs and store the results
+async function scanUrlList(urlList) {
+    const scanResults = [];
+
+    for (const url of urlList) {
+        try {
+            const result = await sendVirusTotalUrl(url);
+            scanResults.push({ url, result });
+            console.log(`Scanned URL: ${url}, Result: ${result}`);
+        } catch (error) {
+            console.error(`Failed to scan URL: ${url}`, error);
+        }
+
+        setTimeout(() => {
+            console.log("Waiting 15 seconds before next scan to avoid rate limiting...");
+        }, 15000); // Wait for 15 seconds before the next scan
+    }
+    return scanResults;
+}
+
