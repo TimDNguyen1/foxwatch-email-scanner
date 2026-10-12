@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FoxWatch</title>
+
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                FoxWatch
+            </div>
+
+            <div class="subtitle">
+                Email Protection
+            </div>
+        </header>
+
+
+        <!-- Analyzer Toggle -->
+        <section class="section analyzer-section">
+
+            <div class="section-label">
+                ANALYZER
+            </div>
+
+            <label class="switch">
+                <input type="checkbox" id="analyzerToggle" checked>
+                <span class="slider"></span>
+            </label>
+
+            <span id="analyzerStatus" class="status-text">
+                ON
+            </span>
+
+        </section>
+
+
+        <!-- Current Email -->
+        <section class="section">
+
+            <div class="section-label">
+                CURRENT EMAIL
+            </div>
+
+            <div id="currentEmail" class="email-subject">
+                No email detected
+            </div>
+
+        </section>
+
+
+        <!-- Risk -->
+        <section class="section">
+
+            <div class="section-label">
+                RISK
+            </div>
+
+            <div class="risk-container">
+
+                <span id="riskIndicator" class="risk-dot safe"></span>
+
+                <span id="riskLevel">
+                    SAFE
+                </span>
+
+            </div>
+
+            <div class="risk-score">
+                Score:
+                <span id="riskScore">0</span>
+            </div>
+
+        </section>
+
+
+        <!-- Statistics -->
+        <section class="section statistics">
+
+            <div class="section-label">
+                SCAN STATISTICS
+            </div>
+
+            <div class="stat-row total-row">
+                <span>Total Emails Scanned</span>
+                <strong id="totalScanned">0</strong>
+            </div>
+
+
+            <div class="stat-row">
+
+                <div class="stat-name">
+                    <span class="stat-dot bad"></span>
+                    Bad
+                </div>
+
+                <strong id="badCount">0</strong>
+
+            </div>
+
+
+            <div class="stat-row">
+
+                <div class="stat-name">
+                    <span class="stat-dot medium"></span>
+                    Medium
+                </div>
+
+                <strong id="mediumCount">0</strong>
+
+            </div>
+
+
+            <div class="stat-row">
+
+                <div class="stat-name">
+                    <span class="stat-dot safe"></span>
+                    Safe
+                </div>
+
+                <strong id="safeCount">0</strong>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <script src="dashboard.js"></script>
+
+</body>
+</html>

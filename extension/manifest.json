@@ -3,6 +3,9 @@
   "name": "FoxWatch Email Scanner",
   "version": "0.1.0",
   "description": "Helps detect potentially suspicious or phishing emails in Gmail.",
+  "action": {
+    "default_popup": "dashboard.html"
+  },
   "permissions": ["activeTab", "storage", "nativeMessaging"],
   "host_permissions": [
     "http://localhost:3000/*"
