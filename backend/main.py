@@ -7,10 +7,16 @@ import httpx
 
 app = FastAPI()
 
-# Dang - Enable CORS
+# Dang - CORS configuration
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Dang - Allow all origins for testing purposes, needs to be replaced with specific origins
+    allow_origins= origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
