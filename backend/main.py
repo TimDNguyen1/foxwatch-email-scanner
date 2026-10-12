@@ -13,7 +13,9 @@ load_dotenv()
 app = FastAPI()
 
 # Dang - CORS configuration
-origins = ["http://localhost:3000"]
+origins = [ "http://localhost",
+            "http://localhost:3000"
+]
 
 app.add_middleware(
     CORSMiddleware,
