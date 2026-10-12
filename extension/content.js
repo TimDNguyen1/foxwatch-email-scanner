@@ -1,5 +1,17 @@
 console.log("FoxWatch extension loaded on Gmail.");
 
+function unwrapGoogleUrl(rawUrl) {
+    try {
+        const parsed = new URL(rawUrl);
+        if (parsed.hostname === "www.google.com" && parsed.pathname === "/url") {
+            return parsed.searchParams.get("q") || rawUrl;
+        }
+    } catch (e) {
+        // not a valid URL, fall through
+    }
+    return rawUrl;
+}
+
 function getCurrentEmail() {
     const subjectElement = document.querySelector("h2.hP");
     const senderElement = document.querySelector(".gD");
@@ -13,18 +25,17 @@ function getCurrentEmail() {
     //gets links in body of email into an array - Dang
     const linkElements = bodyElement.querySelectorAll("a");
 
-    const links = Array.from(linkElements)
-        .map(link => {
-            // Prefer the real destination if Gmail wrapped/redirected it
-            const safeUrl = link.getAttribute("data-saferedirecturl");
-            if (safeUrl) return safeUrl;
-
-            // Fall back to the raw href attribute
-            //this will resolve blank links in extraction
-            return link.getAttribute("href");
-        })
-        //filters out any elements that are not URLs
-        .filter(href => href && !href.startsWith("#") && !href.startsWith("javascript:"));
+    // unwrap Gmail's google.com/url redirects, then remove duplicates
+    const links = [...new Set(
+        Array.from(linkElements)
+            .map(link => {
+                // Prefer the real destination if Gmail wrapped/redirected it
+                const safeUrl = link.getAttribute("data-saferedirecturl");
+                return unwrapGoogleUrl(safeUrl || link.getAttribute("href"));
+            })
+            //filters out any elements that are not URLs
+            .filter(href => href && !href.startsWith("#") && !href.startsWith("javascript:"))
+    )];
 
     return {
         subject: subjectElement.innerText,
@@ -59,21 +70,10 @@ async function cacheResult(messageId, data) {
     });
 }
 
-//TODO: replace with real backend call once it's ready. This is a fake test
-//Simulates "analysis" taking a moment, and returns a fake score/reason
-//so we can verify the cache round-trip works end to end.
-async function fakeAnalyzeEmail(email) {
-    console.log("Running FAKE analysis (no backend yet)...");
-    await new Promise(resolve => setTimeout(resolve, 500)); // simulate delay
-    return {
-        score: Math.floor(Math.random() * 10) + 1, // random 1-10 so you can see it's "fresh" each time cache is empty
-        reasons: ["This is a stubbed result for testing caching only"]
-    };
-}
-
 
 let lastEmail = "";
 let debounceTimer = null;
+const inFlight = new Set();
 
 function handleMutation() {
     clearTimeout(debounceTimer);
@@ -88,8 +88,8 @@ function handleMutation() {
             return;
         }
 
+
         const email = getCurrentEmail();
-        scanUrlList(email.links); // Dang - scan links in email body
         if (!email) return;
 
         const emailIdentifier = email.sender + email.subject + email.body;
@@ -100,28 +100,38 @@ function handleMutation() {
 
         lastEmail = emailIdentifier;
 
-        // NEW: check cache before treating this as something to analyze - tim
-        const messageId = getCurrentMessageId();
-        const cached = messageId ? await getCachedResult(messageId) : null;
 
-        if (cached) {
-            console.log("✅ CACHE HIT for message:", messageId, cached.data);
+        const messageId = getCurrentMessageId();
+
+        if (messageId && inFlight.has(messageId)) {
+            console.log("⏳ Scan already in progress for:", messageId);
             return;
         }
+        if (messageId) inFlight.add(messageId);
 
-        console.log("❌ CACHE MISS — analyzing message:", messageId);
+        //check cache before treating this as something to analyze - tim
+        try {
+            const cached = messageId ? await getCachedResult(messageId) : null;
+            if (cached) {
+                console.log("✅ CACHE HIT for message:", messageId, cached.data);
+                return;
+            }
 
-        // Stand-in for real backend call
-        const result = await fakeAnalyzeEmail(email);
+            console.log("❌ CACHE MISS — analyzing message:", messageId);
 
-        if (messageId) {
-            await cacheResult(messageId, result);
+            const linkScans = await scanUrlList(email.links);
+            const result = {linkScans};
+
+            const allSucceeded = linkScans.length === email.links.length;
+            if (messageId && allSucceeded) {
+                await cacheResult(messageId, result);
+            }
+
+            console.log("NEW EMAIL ANALYZED:", result);
+        } finally {
+            // Always release the lock, even if the scan failed
+            if (messageId) inFlight.delete(messageId);
         }
-        console.log("NEW EMAIL ANALYZED, ", result);
-        console.log(email);
-
-        //TODO later: actually call your backend/analysis here, then:
-        // if (messageId) await cacheResult(messageId, analysisResult);
     }, 150); // debounce rapid-fire mutations during DOM transitions
 }
 
@@ -135,46 +145,43 @@ observer.observe(document.body, {
 // Also catch navigation that doesn't trigger a body mutation
 window.addEventListener("hashchange", handleMutation);
 
-// Dang - Function to send a URL to backend for VirusTotal scanning
+// Dang - sends a URL to the backend (via the background script) for VirusTotal scanning
 async function sendVirusTotalUrl(selectedUrl) {
-    try {
-        const response = await fetch('http://localhost:3000/scan-url', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ url: selectedUrl })
-        });
+    const response = await chrome.runtime.sendMessage({
+        type: "SCAN_URL",
+        url: selectedUrl
+    });
 
-        if (!response.ok) {
-            throw new Error(`Server responded with status ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.submittingLink;
-    } catch (error) {
-        console.error("Error sending URL to VirusTotal:", error);
-        throw error;
+    if (!response || !response.success) {
+        throw new Error(response?.error || "No response from background script");
     }
+    if (!response.data.ok) {
+        throw new Error(response.data.error || "Scan failed");
+    }
+    return response.data;
 }
 
 // Function to scan a list of URLs and store the results
 async function scanUrlList(urlList) {
     const scanResults = [];
 
-    for (const url of urlList) {
+    for (let i = 0; i < urlList.length; i++) {
+        const url = urlList[i];
         try {
             const result = await sendVirusTotalUrl(url);
             scanResults.push({ url, result });
-            console.log(`Scanned URL: ${url}, Result: ${result}`);
+            console.log(`Scanned URL: ${url}`, result);
         } catch (error) {
             console.error(`Failed to scan URL: ${url}`, error);
         }
 
-        setTimeout(() => {
-            console.log("Waiting 15 seconds before next scan to avoid rate limiting...");
-        }, 15000); // Wait for 15 seconds before the next scan
+        // Actually pause between scans (skip after the last one)
+        if (i < urlList.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 15000));
+        }
     }
     return scanResults;
 }
+
+
 

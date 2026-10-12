@@ -1,16 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-import requests
 import httpx
+import os
+import asyncio
 
 app = FastAPI()
 
 # Dang - CORS configuration
-origins = [
-    "http://localhost:3000"
-]
+origins = ["https://mail.google.com"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,24 +29,43 @@ class URLRequest(BaseModel):
 
 # Dang - VirusTotal API integration
 url = "https://www.virustotal.com/api/v3/urls"
-VTApiKey = "f821ba9e12df3003de6f0b1c878bf5a52b05a67240d710adb1e7f2957a09ea5e"
+VTApiKey = os.environ["VT_API_KEY"]
 
 @app.post("/scan-url")
 async def virustotal_scan(url_to_scan: URLRequest):
-    payload = {"url": url_to_scan}
-    headers = {
-        "accept": "application/json",
-        "x-apikey": VTApiKey,
-        "content-type": "application/x-www-form-urlencoded"
-    }
+    headers = {"accept": "application/json", "x-apikey": VTApiKey}
 
-    response = requests.post(url, data=payload, headers=headers)
+    async with httpx.AsyncClient(timeout=30) as client:
+        # 1. Submit the URL
+        submit = await client.post(url, headers=headers, data={"url": url_to_scan.url})
+        if submit.status_code != 200:
+            return {"ok": False, "status_code": submit.status_code, "error": submit.text}
 
-    if response.status_code == 200:
-        return {"message": "Request successful!", "data": response.json()}
-    else:
-        return {"message": "Request failed", "status_code": response.status_code, "error": response.text}
+        analysis_id = submit.json()["data"]["id"]
+
+        # 2. Poll for the verdict (VirusTotal can queue new URLs for a while)
+        for _ in range(6):
+            await asyncio.sleep(10)
+            result = await client.get(
+                f"https://www.virustotal.com/api/v3/analyses/{analysis_id}", headers=headers
+            )
+            if result.status_code != 200:
+                return {"ok": False, "status_code": result.status_code, "error": result.text}
+
+            attrs = result.json()["data"]["attributes"]
+            if attrs["status"] == "completed":
+                stats = attrs["stats"]
+                return {
+                    "ok": True,
+                    "url": url_to_scan.url,
+                    "malicious": stats["malicious"],
+                    "suspicious": stats["suspicious"],
+                    "harmless": stats["harmless"],
+                    "undetected": stats["undetected"],
+                }
+
+        return {"ok": False, "error": "Analysis timed out"}
 
 # Dang - uvicorn server configuration
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=3000, reload=True)
+    uvicorn.run("main:app", host="localhost", port=3000, reload=True)
