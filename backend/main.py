@@ -14,16 +14,32 @@ app = FastAPI()
 
 # Dang - CORS configuration
 origins = [ "http://localhost",
+            "https://localhost",
             "http://localhost:3000",
-            "http://127.0.0.1:3000"
+            "https://localhost:3000",
+            "http://127.0.0.1",
+            "https://127.0.0.1",
+            "http://127.0.0.1:3000",
+            "https://127.0.0.1:3000"
+]
+
+methods = ["GET", 
+           "POST", 
+           "PUT", 
+           "DELETE", 
+           "OPTIONS"
+]
+
+headers = ["Content-Type", 
+           "Authorization"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins= origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods= methods,
+    allow_headers= headers,
 )
 
 @app.get("/")
@@ -40,7 +56,9 @@ VTApiKey = os.environ["VT_API_KEY"]
 
 @app.post("/scan-url")
 async def virustotal_scan(url_to_scan: URLRequest):
-    headers = {"accept": "application/json", "x-apikey": VTApiKey}
+    headers = {"accept": "application/json", 
+               "x-apikey": VTApiKey, 
+               "Content-Type": "application/x-www-form-urlencoded"}
 
     async with httpx.AsyncClient(timeout=30) as client:
         # 1. Submit the URL
