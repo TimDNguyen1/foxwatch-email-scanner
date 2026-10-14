@@ -20,11 +20,12 @@ origins = [ "http://localhost",
             "http://127.0.0.1",
             "https://127.0.0.1",
             "http://127.0.0.1:3000",
-            "https://127.0.0.1:3000"
+            "https://127.0.0.1:3000",
+            "https://mail.google.com"
 ]
 
 methods = ["GET", 
-           "POST", 
+           "POST",
            "PUT", 
            "DELETE", 
            "OPTIONS"

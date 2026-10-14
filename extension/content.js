@@ -130,6 +130,9 @@ function handleMutation() {
             currentEmail: email.subject
         });
 
+        // - Dang for logging purposes, prints the subject, sender, and links of the newly detected email
+        console.log("New email detected:", email.subject, "from", email.sender, "with links:", email.links);
+
 
         const messageId = getCurrentMessageId();
 
@@ -212,6 +215,3 @@ async function scanUrlList(urlList) {
     }
     return scanResults;
 }
-
-
-
