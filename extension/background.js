@@ -3,9 +3,9 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type !== "SCAN_URL") return;
 
-    fetch("http://localhost:3000/scan-url", {
+    fetch("http://127.0.0.1:8000/scan-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "content-type": "application/json", "accept": "application/json " },
         body: JSON.stringify({ url: message.url })
     })
         .then(async (response) => {

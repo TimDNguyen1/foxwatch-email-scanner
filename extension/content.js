@@ -47,12 +47,21 @@ function getCurrentEmail() {
     const links = [...new Set(
         Array.from(linkElements)
             .map(link => {
-                // Prefer the real destination if Gmail wrapped/redirected it
                 const safeUrl = link.getAttribute("data-saferedirecturl");
-                return unwrapGoogleUrl(safeUrl || link.getAttribute("href"));
-            })
-            //filters out any elements that are not URLs
-            .filter(href => href && !href.startsWith("#") && !href.startsWith("javascript:"))
+                let rawHref = unwrapGoogleUrl(safeUrl || link.getAttribute("href"));
+            
+                if (!rawHref) return null;
+
+                // Resolve relative paths into absolute URLs using Gmail's base origin
+                try {
+                    const resolvedUrl = new URL(rawHref, window.location.origin);
+                    return resolvedUrl.href;
+                } catch (e) {
+                    return null;
+                }
+        })
+        // Enforce that only valid web protocols (http/https) are sent to VirusTotal
+        .filter(href => href && (href.startsWith("http://") || href.startsWith("https://")))
     )];
 
     return {

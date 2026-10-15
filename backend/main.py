@@ -1,14 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
 import uvicorn
 import httpx
 import os
 import asyncio
 
 # Dang - Load environment variables from .env file
-load_dotenv()
+class Settings(BaseSettings):
+    VT_API_KEY: str
+
+    model_config = SettingsConfigDict(env_file=".env")
+
+@lru_cache()
+def get_settings():
+    # Dang - Print a message indicating that settings are being loaded from the .env file
+    print("Loading settings from .env file...")
+
+    return Settings()
 
 app = FastAPI()
 
@@ -31,16 +42,19 @@ methods = ["GET",
            "OPTIONS"
 ]
 
-headers = ["Content-Type", 
-           "Authorization"
+headers = ["content-type", 
+           "authorization",
+           "x-requested-with",
+            "accept"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins= origins,
-    allow_credentials=True,
-    allow_methods= methods,
-    allow_headers= headers,
+    allow_origin_regex=r"^(moz|chrome)-extension://.*$",
+    allow_credentials=False,
+    allow_methods= ["*"],
+    allow_headers= ["*"],
 )
 
 @app.get("/")
@@ -53,17 +67,18 @@ class URLRequest(BaseModel):
 
 # Dang - VirusTotal API integration
 url = "https://www.virustotal.com/api/v3/urls"
-VTApiKey = os.environ["VT_API_KEY"]
+VTApiKey = get_settings().VT_API_KEY
 
 @app.post("/scan-url")
 async def virustotal_scan(url_to_scan: URLRequest):
-    headers = {"accept": "application/json", 
-               "x-apikey": VTApiKey, 
-               "Content-Type": "application/x-www-form-urlencoded"}
+    headers = {"accept": "application/json",
+               "x-apikey": VTApiKey
+                }
 
     async with httpx.AsyncClient(timeout=30) as client:
+        payload = {"url": url_to_scan.url}
         # 1. Submit the URL
-        submit = await client.post(url, headers=headers, data={"url": url_to_scan.url})
+        submit = await client.post(url, data=payload, headers=headers)
         if submit.status_code != 200:
             return {"ok": False, "status_code": submit.status_code, "error": submit.text}
 
@@ -94,4 +109,4 @@ async def virustotal_scan(url_to_scan: URLRequest):
 
 # Dang - uvicorn server configuration
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=3000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

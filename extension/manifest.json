@@ -8,7 +8,7 @@
   },
   "permissions": ["activeTab", "storage", "nativeMessaging"],
   "host_permissions": [
-    "http://localhost:3000/*"
+    "http://127.0.0*"
   ],
   "background": {
     "service_worker": "background.js",
