@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import httpx
-import os
 import asyncio
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 app = FastAPI()
 
@@ -27,9 +28,21 @@ def home():
 class URLRequest(BaseModel):
     url: str
 
+#store api key in .env (make sure .env in .gitignore)
+class Settings(BaseSettings):
+    VT_API_KEY: str
+
+    # extra="ignore" so other lines in .env don't crash startup
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+@lru_cache()
+def get_settings():
+    return Settings()
+VTApiKey = get_settings().VT_API_KEY
+
 # Dang - VirusTotal API integration
 url = "https://www.virustotal.com/api/v3/urls"
-VTApiKey = os.environ["VT_API_KEY"]
+
 
 @app.post("/scan-url")
 async def virustotal_scan(url_to_scan: URLRequest):
@@ -68,4 +81,4 @@ async def virustotal_scan(url_to_scan: URLRequest):
 
 # Dang - uvicorn server configuration
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=3000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
