@@ -5,7 +5,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 import uvicorn
 import httpx
-import os
 import asyncio
 
 # Dang - Load environment variables from .env file
@@ -33,19 +32,6 @@ origins = [ "http://localhost",
             "http://127.0.0.1:3000",
             "https://127.0.0.1:3000",
             "https://mail.google.com"
-]
-
-methods = ["GET", 
-           "POST",
-           "PUT", 
-           "DELETE", 
-           "OPTIONS"
-]
-
-headers = ["content-type", 
-           "authorization",
-           "x-requested-with",
-            "accept"
 ]
 
 app.add_middleware(
