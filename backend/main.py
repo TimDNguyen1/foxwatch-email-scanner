@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
 import uvicorn
 import httpx
+import os
 import asyncio
-from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 app = FastAPI()
 
@@ -15,9 +16,10 @@ origins = ["https://mail.google.com"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins= origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origin_regex=r"^(moz|chrome)-extension://.*$",
+    allow_credentials=False,
+    allow_methods= ["*"],
+    allow_headers= ["*"],
 )
 
 @app.get("/")
@@ -37,12 +39,13 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings():
+    print("Loading settings from .env file...")
     return Settings()
 VTApiKey = get_settings().VT_API_KEY
 
 # Dang - VirusTotal API integration
 url = "https://www.virustotal.com/api/v3/urls"
-
+VTApiKey = get_settings().VT_API_KEY
 
 @app.post("/scan-url")
 async def virustotal_scan(url_to_scan: URLRequest):
