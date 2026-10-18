@@ -61,7 +61,8 @@ function getCurrentEmail() {
                 }
         })
         // Enforce that only valid web protocols (http/https) are sent to VirusTotal
-        .filter(href => href && (href.startsWith("http://") || href.startsWith("https://")))
+        .filter(href => href && (href.startsWith("http://") || href.startsWith("https://"))
+            && !href.startsWith(window.location.origin))
     )];
 
     return {
@@ -140,7 +141,7 @@ function handleMutation() {
         });
 
         // - Dang for logging purposes, prints the subject, sender, and links of the newly detected email
-        console.log("New email detected:", email.subject, "from", email.sender, "with links:", email.links);
+        console.log("New email opened:", email.subject, "from", email.sender, "with links:", email.links);
 
 
         const messageId = getCurrentMessageId();
