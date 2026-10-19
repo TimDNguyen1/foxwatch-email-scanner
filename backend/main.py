@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, FilePath
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 import uvicorn
@@ -25,6 +25,8 @@ app.add_middleware(
 def home():
     return {"message": "FoxWatch backend is running!"}
 
+BASE_DIR = FilePath(__file__).resolve().parent
+
 # Dang - Define the request model for URL scanning
 class URLRequest(BaseModel):
     url: str
@@ -34,7 +36,7 @@ class Settings(BaseSettings):
     VT_API_KEY: str
     OPENAI_API_KEY: str
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
 @lru_cache()
 def get_settings():
