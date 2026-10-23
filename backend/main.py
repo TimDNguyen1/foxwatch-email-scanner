@@ -142,7 +142,7 @@ async def analyze_email(email: EmailRequest):
 
     try:
         response = await openai_client.responses.parse(
-            model="gpt-4o-mini",
+            model="gpt-6-luna",
             instructions=instructions,
             input=email_details,
             text_format=EmailAnalysis
