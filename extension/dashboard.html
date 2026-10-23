@@ -1,141 +1,136 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>FoxWatch</title>
-
     <link rel="stylesheet" href="dashboard.css">
 </head>
 
 <body>
-
     <div class="dashboard">
 
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                FoxWatch
-            </div>
+        <!-- Main Dashboard -->
+        <div id="mainView">
 
-            <div class="subtitle">
-                Email Protection
-            </div>
-        </header>
+            <header class="header">
+                <div class="logo">FoxWatch</div>
+                <div class="subtitle">Email Protection</div>
+            </header>
 
+            <!-- Analyzer Toggle -->
+            <section class="section analyzer-section">
+                <div class="section-label">ANALYZER</div>
 
-        <!-- Analyzer Toggle -->
-        <section class="section analyzer-section">
+                <label class="switch">
+                    <input type="checkbox" id="analyzerToggle" checked>
+                    <span class="slider"></span>
+                </label>
 
-            <div class="section-label">
-                ANALYZER
-            </div>
+                <span id="analyzerStatus" class="status-text">ON</span>
+            </section>
 
-            <label class="switch">
-                <input type="checkbox" id="analyzerToggle" checked>
-                <span class="slider"></span>
-            </label>
+            <!-- Current Email -->
+            <section class="section">
+                <div class="section-label">CURRENT EMAIL</div>
+                <div id="currentEmail" class="email-subject">
+                    No email detected
+                </div>
+            </section>
 
-            <span id="analyzerStatus" class="status-text">
-                ON
-            </span>
+            <!-- Risk -->
+            <section class="section risk-section">
 
-        </section>
+                <button id="viewDetailsButton" class="details-button">
+                    View Details
+                </button>
 
+                <div class="section-label">RISK</div>
 
-        <!-- Current Email -->
-        <section class="section">
-
-            <div class="section-label">
-                CURRENT EMAIL
-            </div>
-
-            <div id="currentEmail" class="email-subject">
-                No email detected
-            </div>
-
-        </section>
-
-
-        <!-- Risk -->
-        <section class="section">
-
-            <div class="section-label">
-                RISK
-            </div>
-
-            <div class="risk-container">
-
-                <span id="riskIndicator" class="risk-dot safe"></span>
-
-                <span id="riskLevel">
-                    SAFE
-                </span>
-
-            </div>
-
-            <div class="risk-score">
-                Score:
-                <span id="riskScore">0</span>
-            </div>
-
-        </section>
-
-
-        <!-- Statistics -->
-        <section class="section statistics">
-
-            <div class="section-label">
-                SCAN STATISTICS
-            </div>
-
-            <div class="stat-row total-row">
-                <span>Total Emails Scanned</span>
-                <strong id="totalScanned">0</strong>
-            </div>
-
-
-            <div class="stat-row">
-
-                <div class="stat-name">
-                    <span class="stat-dot bad"></span>
-                    Bad
+                <div class="risk-container">
+                    <span id="riskIndicator" class="risk-dot safe"></span>
+                    <span id="riskLevel">SAFE</span>
                 </div>
 
-                <strong id="badCount">0</strong>
-
-            </div>
-
-
-            <div class="stat-row">
-
-                <div class="stat-name">
-                    <span class="stat-dot medium"></span>
-                    Medium
+                <div class="risk-score">
+                    Score: <span id="riskScore">0</span>
                 </div>
 
-                <strong id="mediumCount">0</strong>
+            </section>
 
-            </div>
+            <!-- Scan Statistics -->
+            <section class="section statistics">
+                <div class="section-label">SCAN STATISTICS</div>
 
-
-            <div class="stat-row">
-
-                <div class="stat-name">
-                    <span class="stat-dot safe"></span>
-                    Safe
+                <div class="stat-row total-row">
+                    <span>Total Emails Scanned</span>
+                    <strong id="totalScanned">0</strong>
                 </div>
 
-                <strong id="safeCount">0</strong>
+                <div class="stat-row">
+                    <div class="stat-name">
+                        <span class="stat-dot bad"></span>
+                        Bad
+                    </div>
+                    <strong id="badCount">0</strong>
+                </div>
 
-            </div>
+                <div class="stat-row">
+                    <div class="stat-name">
+                        <span class="stat-dot medium"></span>
+                        Medium
+                    </div>
+                    <strong id="mediumCount">0</strong>
+                </div>
 
-        </section>
+                <div class="stat-row">
+                    <div class="stat-name">
+                        <span class="stat-dot safe"></span>
+                        Safe
+                    </div>
+                    <strong id="safeCount">0</strong>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Details View -->
+        <div id="detailsView" hidden>
+
+            <header class="header details-header">
+                <div>
+                    <div class="logo">Scan Details</div>
+                    <div class="subtitle" id="detailsEmail">
+                        No email selected
+                    </div>
+                </div>
+
+                <button id="backButton" class="back-button">
+                    &larr; Back
+                </button>
+            </header>
+
+            <!-- VirusTotal Results -->
+            <section class="section">
+                <div class="section-label">VIRUSTOTAL RESULTS</div>
+                <div id="virusTotalDetails">
+                    No saved VirusTotal results available.
+                </div>
+            </section>
+
+            <!-- OpenAI Analysis -->
+            <section class="section">
+                <div class="section-label">OPENAI ANALYSIS</div>
+                <div id="openAIDetails">
+                    No saved OpenAI results available.
+                </div>
+            </section>
+
+        </div>
 
     </div>
 
     <script src="dashboard.js"></script>
-
 </body>
 </html>

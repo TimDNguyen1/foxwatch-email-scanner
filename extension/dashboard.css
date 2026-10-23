@@ -220,3 +220,92 @@ body {
 .stat-row strong {
     font-size: 15px;
 }
+
+
+/* View Details and Back buttons */
+.details-button,
+.back-button {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 14px;
+    border: 1px solid #d6e0ed;
+    border-radius: 10px;
+    background-color: #ffffff;
+    color: #17365d;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+    .details-button:hover,
+    .back-button:hover {
+        background-color: #f1f6fc;
+        border-color: #b8cce5;
+    }
+
+    .details-button:focus-visible,
+    .back-button:focus-visible {
+        outline: 2px solid #3478f6;
+        outline-offset: 2px;
+    }
+
+/* Align the details title and Back button */
+.details-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+    .details-header .back-button {
+        width: auto;
+        flex-shrink: 0;
+        margin-top: 0;
+    }
+
+
+/* Risk card with View Details button */
+.risk-section {
+    position: relative;
+}
+
+    .risk-section .details-button {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: auto;
+        margin-top: 0;
+        padding: 6px 10px;
+        border: 1px solid #d6e0ed;
+        border-radius: 8px;
+        background-color: #ffffff;
+        color: #17365d;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        .risk-section .details-button:hover {
+            background-color: #f1f6fc;
+            border-color: #b8cce5;
+        }
+
+/* Details page header */
+.details-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+    .details-header .back-button {
+        width: auto;
+        flex-shrink: 0;
+        margin-top: 0;
+    }
