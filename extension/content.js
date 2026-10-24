@@ -40,7 +40,7 @@ function getCurrentEmail() {
     }
 
 
-    //gets links in body of email into an array - Dang
+    // Dang - gets links in body of email into an array
     const linkElements = bodyElement.querySelectorAll("a");
 
     // unwrap Gmail's google.com/url redirects, then remove duplicates
