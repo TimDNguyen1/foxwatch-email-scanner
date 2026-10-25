@@ -15,9 +15,7 @@ async function postJson(endpoint, payload) {
    return response.json();
 }
 
-//Dang - Modified the handlers to use the new endpoints for scanning URLs and analyzing email bodies. 
-//The SCAN_URL handler sends a POST request to /scan-url with the URL to be scanned, while the CHECK_EMAIL_BODY handler sends a POST request to /analyze-email with the email body to be analyzed. 
-//Both handlers return a promise that resolves with the server's response or rejects with an error message if the request fails.   
+//Dang - Modified the handlers to use the new endpoints for scanning URLs and analyzing email bodies.
 const handlers = {
    SCAN_URL: (m) => postJson("/scan-url", { url: m.url }),
    CHECK_EMAIL_BODY: (m) => postJson("/analyze-email", { body: m.body })
