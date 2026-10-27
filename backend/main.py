@@ -61,8 +61,6 @@ def get_settings():
     print("Loading settings from .env file...")
     return Settings()
 VTApiKey = get_settings().VT_API_KEY
-OPENAIApiKey = get_settings().OPENAI_API_KEY
-
 settings = get_settings()
 
 openai_client = AsyncOpenAI(
@@ -155,7 +153,7 @@ async def analyze_email(email: EmailRequest):
                 detail="OpenAI did not return an analysis."
             )
 
-        return result.model_dump()
+        return {"ok": True, **result.model_dump()}
 
     except HTTPException:
         raise

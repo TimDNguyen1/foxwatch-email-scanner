@@ -18,7 +18,7 @@ async function postJson(endpoint, payload) {
 //Dang - Modified the handlers to use the new endpoints for scanning URLs and analyzing email bodies.
 const handlers = {
    SCAN_URL: (m) => postJson("/scan-url", { url: m.url }),
-   CHECK_EMAIL_BODY: (m) => postJson("/analyze-email", { body: m.body })
+   CHECK_EMAIL_BODY: (m) => postJson("/analyze-email", { body: m.text })
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

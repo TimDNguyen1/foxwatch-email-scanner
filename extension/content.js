@@ -163,7 +163,8 @@ function handleMutation() {
             console.log("❌ CACHE MISS — analyzing message:", messageId);
 
             const linkScans = await scanUrlList(email.links);
-            const result = {linkScans};
+            const emailBodyAnalysis = await scanEmailBody(email.body);
+            const result = {linkScans, emailBodyAnalysis};
 
             const allSucceeded = linkScans.length === email.links.length;
             if (messageId && allSucceeded) {
@@ -224,4 +225,21 @@ async function scanUrlList(urlList) {
         }
     }
     return scanResults;
+}
+
+// Dang - sends the email body to the backend (via the background script) for analysis
+async function scanEmailBody(emailBody) {
+    const response = await chrome.runtime.sendMessage({
+        type: "CHECK_EMAIL_BODY",
+        text: emailBody
+    });
+
+    if (!response || !response.success) {
+        throw new Error(response?.error || "No response from background script");
+    }
+    console.log("CHECK_EMAIL_BODY response:", response);
+    if (!response.data.ok) {
+        throw new Error(response.data.error || "Email body analysis failed");
+    }
+    return response.data;
 }
