@@ -153,20 +153,38 @@ function handleMutation() {
         if (messageId) inFlight.add(messageId);
 
         //check cache before treating this as something to analyze - tim
+        // Cynthia - Adjusted for openai analysis and banner
         try {
             const cached = messageId ? await getCachedResult(messageId) : null;
-            if (cached) {
+            if (cached && cached.data.aiAnalysis) {
                 console.log("✅ CACHE HIT for message:", messageId, cached.data);
+                showBanner(cached.data.aiAnalysis);
                 return;
             }
 
             console.log("❌ CACHE MISS — analyzing message:", messageId);
 
-            const linkScans = await scanUrlList(email.links);
-            const emailBodyAnalysis = await scanEmailBody(email.body);
-            const result = {linkScans, emailBodyAnalysis};
+            // Cynthia - AI analysis runs first so the banner appears quickly
+            let aiAnalysis = null;
+            try {
+                aiAnalysis = await analyzeEmailWithAI(email);
+                console.log("AI ANALYSIS:", aiAnalysis);
+                showBanner(aiAnalysis);
+            } catch (error) {
+                console.error("AI analysis failed:", error);
+                showBanner(null);
+            }
 
-            const allSucceeded = linkScans.length === email.links.length;
+            const linkScans = await scanUrlList(email.links);
+            let emailBodyAnalysis = null;
+            try {
+                emailBodyAnalysis = await scanEmailBody(email.body);
+            } catch (error) {
+                console.error("Email body analysis failed:", error);
+            }
+            const result = { linkScans, emailBodyAnalysis, aiAnalysis };
+
+            const allSucceeded = aiAnalysis !== null && linkScans.length === email.links.length;
             if (messageId && allSucceeded) {
                 await cacheResult(messageId, result);
             }
@@ -226,7 +244,6 @@ async function scanUrlList(urlList) {
     }
     return scanResults;
 }
-
 // Dang - sends the email body to the backend (via the background script) for analysis
 async function scanEmailBody(emailBody) {
     const response = await chrome.runtime.sendMessage({
@@ -242,4 +259,59 @@ async function scanEmailBody(emailBody) {
         throw new Error(response.data.error || "Email body analysis failed");
     }
     return response.data;
+}
+
+// Cynthia - Sends the email to the backend (via background.js) for OpenAI analysis
+async function analyzeEmailWithAI(email) {
+    const response = await chrome.runtime.sendMessage({
+        type: "ANALYZE_EMAIL",
+        email: {
+            sender: email.sender || "",
+            subject: email.subject || "",
+            body: email.body || "",
+            links: email.links
+        }
+    });
+
+    if (!response || !response.success) {
+        throw new Error(response?.error || "No response from background script");
+    }
+    return response.data;
+}
+
+// Shows a color-coded banner above the email body (never shows the raw score)
+function showBanner(analysis) {
+    const bodyElement = document.querySelector(".a3s");
+    if (!bodyElement || !bodyElement.parentElement) return;
+
+    const old = document.getElementById("foxwatch-banner");
+    if (old) old.remove();
+
+    const styles = {
+        low: { bg: "#e6f4ea", border: "#1e8e3e", title: "Looks safe" },
+        medium: { bg: "#fef7e0", border: "#f9ab00", title: "Be careful, this email looks suspicious" },
+        high: { bg: "#fce8e6", border: "#d93025", title: "Likely a scam. Do not open or click anything." },
+        unknown: { bg: "#f1f3f4", border: "#80868b", title: "Could not verify this email" }
+    };
+    const level = analysis ? analysis.risk_level : "unknown";
+    const style = styles[level] || styles.unknown;
+
+    const banner = document.createElement("div");
+    banner.id = "foxwatch-banner";
+    banner.style.cssText =
+        `background:${style.bg};border-left:6px solid ${style.border};color:#202124;` +
+        "padding:12px 16px;margin:8px 0;border-radius:4px;font-family:Arial,sans-serif;font-size:14px;";
+
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:bold;margin-bottom:4px;";
+    title.textContent = "FoxWatch: " + style.title;
+
+    const text = document.createElement("div");
+    text.textContent = analysis
+        ? analysis.explanation
+        : "Analysis was unavailable. Treat this email with caution.";
+
+    banner.appendChild(title);
+    banner.appendChild(text);
+    bodyElement.parentElement.insertBefore(banner, bodyElement);
 }
