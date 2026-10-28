@@ -176,7 +176,13 @@ function handleMutation() {
             }
 
             const linkScans = await scanUrlList(email.links);
-            const result = { linkScans, aiAnalysis };
+            let emailBodyAnalysis = null;
+            try {
+                emailBodyAnalysis = await scanEmailBody(email.body);
+            } catch (error) {
+                console.error("Email body analysis failed:", error);
+            }
+            const result = { linkScans, emailBodyAnalysis, aiAnalysis };
 
             const allSucceeded = aiAnalysis !== null && linkScans.length === email.links.length;
             if (messageId && allSucceeded) {
@@ -238,6 +244,23 @@ async function scanUrlList(urlList) {
     }
     return scanResults;
 }
+// Dang - sends the email body to the backend (via the background script) for analysis
+async function scanEmailBody(emailBody) {
+    const response = await chrome.runtime.sendMessage({
+        type: "CHECK_EMAIL_BODY",
+        text: emailBody
+    });
+
+    if (!response || !response.success) {
+        throw new Error(response?.error || "No response from background script");
+    }
+    console.log("CHECK_EMAIL_BODY response:", response);
+    if (!response.data.ok) {
+        throw new Error(response.data.error || "Email body analysis failed");
+    }
+    return response.data;
+}
+
 // Cynthia - Sends the email to the backend (via background.js) for OpenAI analysis
 async function analyzeEmailWithAI(email) {
     const response = await chrome.runtime.sendMessage({
