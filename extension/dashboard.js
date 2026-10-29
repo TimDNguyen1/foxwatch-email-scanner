@@ -2,276 +2,364 @@ const analyzerToggle = document.getElementById("analyzerToggle");
 const analyzerStatus = document.getElementById("analyzerStatus");
 
 const currentEmail = document.getElementById("currentEmail");
-
+const emailSender = document.getElementById("emailSender");
 const riskIndicator = document.getElementById("riskIndicator");
 const riskLevel = document.getElementById("riskLevel");
 const riskScore = document.getElementById("riskScore");
+
+const detailsEmail = document.getElementById("detailsEmail");
+const openAIDetails = document.getElementById("openAIDetails");
+const virusTotalDetails = document.getElementById("virusTotalDetails");
 
 const totalScanned = document.getElementById("totalScanned");
 const badCount = document.getElementById("badCount");
 const mediumCount = document.getElementById("mediumCount");
 const safeCount = document.getElementById("safeCount");
+const clearStatisticsButton = document.getElementById("clearStatisticsButton");
 
+const mainView = document.getElementById("mainView");
+const detailsView = document.getElementById("detailsView");
+const categoryView = document.getElementById("categoryView");
 
-// =========================
-// LOAD DASHBOARD DATA
-// =========================
-// - Osman
-// Loads saved analyzer, email, risk, and scan statistics
-// from Chrome storage when the FoxWatch dashboard opens.
+const categoryTitle = document.getElementById("categoryTitle");
+const categoryEmailList = document.getElementById("categoryEmailList");
 
-chrome.storage.local.get(
-    [
-        "analyzerEnabled",
-        "currentEmail",
-        "riskLevel",
-        "riskScore",
-        "totalScanned",
-        "badCount",
-        "mediumCount",
-        "safeCount"
-    ],
-
-    (data) => {
-
-        // Analyzer
-        const enabled =
-            data.analyzerEnabled !== false;
-
-        analyzerToggle.checked = enabled;
-
-        updateAnalyzerStatus(enabled);
-
-
-        // Current email
-        if (data.currentEmail) {
-            currentEmail.textContent = data.currentEmail;
-        }
-
-
-        // Risk
-        if (data.riskLevel) {
-            updateRisk(
-                data.riskLevel,
-                data.riskScore ?? 0
-            );
-        }
-
-
-        // Statistics
-        totalScanned.textContent =
-            data.totalScanned ?? 0;
-
-        badCount.textContent =
-            data.badCount ?? 0;
-
-        mediumCount.textContent =
-            data.mediumCount ?? 0;
-
-        safeCount.textContent =
-            data.safeCount ?? 0;
-    }
-);
-
-
-// =========================
-// ANALYZER ON/OFF
-// =========================
-// - Osman
-// Controls the FoxWatch analyzer ON/OFF switch
-// and saves the user's setting to Chrome storage.
-
-analyzerToggle.addEventListener("change", () => {
-
-    const enabled = analyzerToggle.checked;
-
-    chrome.storage.local.set({
-        analyzerEnabled: enabled
-    });
-
-    updateAnalyzerStatus(enabled);
-});
-
-
-function updateAnalyzerStatus(enabled) {
-
-    if (enabled) {
-
-        analyzerStatus.textContent = "ON";
-
-        analyzerStatus.style.color = "#2196f3";
-
-    } else {
-
-        analyzerStatus.textContent = "OFF";
-
-        analyzerStatus.style.color = "#6b7280";
-    }
+function showView(view) {
+    mainView.hidden = view !== "main";
+    detailsView.hidden = view !== "details";
+    categoryView.hidden = view !== "category";
 }
 
-
-// =========================
-// RISK DISPLAY
-// =========================
-// - Osman
-// Updates the risk level, score, and indicator color
-// based on the email's analysis result.
+function updateAnalyzerStatus(enabled) {
+    analyzerStatus.textContent = enabled ? "ON" : "OFF";
+    analyzerStatus.style.color = enabled ? "#2196f3" : "#6b7280";
+}
 
 function updateRisk(level, score) {
+    const normalized = (level || "unknown").toLowerCase();
 
-    riskLevel.textContent =
-        level.toUpperCase();
+    riskIndicator.className = "risk-dot";
 
-    riskScore.textContent =
-        score;
+    // While the email is still being analyzed, show LOADING and hide the dot.
+    if (normalized === "loading") {
+        riskLevel.textContent = "LOADING...";
+        riskScore.textContent = "...";
+        riskIndicator.style.display = "none";
+        return;
+    }
 
-    riskIndicator.className =
-        "risk-dot";
+    riskIndicator.style.display = "";
+    riskLevel.textContent = normalized.toUpperCase();
+    riskScore.textContent = score;
 
-
-    const normalized =
-        level.toLowerCase();
-
-
-    if (
-        normalized === "high" ||
-        normalized === "bad" ||
-        normalized === "malicious"
-    ) {
-
+    if (["high", "bad", "malicious"].includes(normalized)) {
         riskIndicator.classList.add("bad");
-
-    } else if (
-        normalized === "medium" ||
-        normalized === "suspicious"
-    ) {
-
+    } else if (["medium", "suspicious"].includes(normalized)) {
         riskIndicator.classList.add("medium");
-
     } else {
-
         riskIndicator.classList.add("safe");
     }
 }
 
-// - Osman
-// Displays VirusTotal URL scan results saved by content.js.
+// Loads the current email and dashboard information.
+async function loadDashboard() {
+    const data = await chrome.storage.local.get([
+        "analyzerEnabled",
+        "currentEmail",
+        "emailSender",
+        "emailSubject",
+        "emailAnalysis",
+        "riskLevel",
+        "riskScore"
+    ]);
 
-function displayLatestScan(data) {
+    const enabled = data.analyzerEnabled !== false;
 
-    if (!data.latestScanResults) {
-        return;
-    }
+    analyzerToggle.checked = enabled;
+    updateAnalyzerStatus(enabled);
 
     currentEmail.textContent =
-        data.latestScanEmail || "Unknown email";
+        data.emailSubject || data.currentEmail || "No email detected";
 
-    const results = data.latestScanResults;
+    emailSender.textContent =
+        data.emailSender || "No sender detected";
 
-    if (results.length === 0) {
+    if (data.emailAnalysis) {
+        updateRisk(
+            data.emailAnalysis.risk_level,
+            data.emailAnalysis.risk_score ?? "N/A"
+        );
 
-        riskLevel.textContent = "NO LINKS";
-        riskScore.textContent = "N/A";
-
-        riskIndicator.className = "risk-dot";
-        riskIndicator.classList.add("medium");
-
-        return;
-    }
-
-    const successfulScans = results.filter(
-        item => item.result && item.result.ok
-    );
-
-    if (successfulScans.length === 0) {
-
-        riskLevel.textContent = "SCAN FAILED";
-        riskScore.textContent = "N/A";
-
-        riskIndicator.className = "risk-dot";
-        riskIndicator.classList.add("medium");
-
-        return;
-    }
-
-    const malicious = successfulScans.reduce(
-        (total, item) =>
-            total + (item.result.malicious || 0),
-        0
-    );
-
-    const suspicious = successfulScans.reduce(
-        (total, item) =>
-            total + (item.result.suspicious || 0),
-        0
-    );
-
-    let level;
-
-    if (malicious > 0) {
-
-        level = "malicious";
-
-    } else if (suspicious > 0) {
-
-        level = "suspicious";
-
+        openAIDetails.textContent =
+            data.emailAnalysis.explanation || "No explanation available.";
     } else {
-
-        level = "safe";
+        updateRisk(data.riskLevel || "unknown", data.riskScore ?? "N/A");
     }
 
-    updateRisk(level, malicious + suspicious);
-
-    // Update scan statistics
-    totalScanned.textContent = successfulScans.length;
-    badCount.textContent = malicious;
-    mediumCount.textContent = suspicious;
-    safeCount.textContent = successfulScans.filter(
-        item =>
-            (item.result.malicious || 0) === 0 &&
-            (item.result.suspicious || 0) === 0
-    ).length;
+    await updateStatistics();
 }
 
+// Counts only email IDs recorded since the last Clear.
+async function updateStatistics() {
+    const data = await chrome.storage.local.get("countedEmailIds");
+    const countedIds = data.countedEmailIds || [];
+    const allData = await chrome.storage.local.get(null);
 
-// Loads the latest scan results when the dashboard opens.
-chrome.storage.local.get(
-    ["latestScanResults", "latestScanEmail"],
-    displayLatestScan
-);
+    let total = 0;
+    let bad = 0;
+    let medium = 0;
+    let safe = 0;
 
+    for (const messageId of countedIds) {
+        const record = allData[`foxwatch_${messageId}`];
 
-// - Osman
-// Refreshes the dashboard when new scan results are saved.
-chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (!record?.data?.aiAnalysis) {
+            continue;
+        }
+
+        const level =
+            (record.data.aiAnalysis.risk_level || "").toLowerCase();
+
+        total++;
+
+        if (["high", "bad", "malicious"].includes(level)) {
+            bad++;
+        } else if (["medium", "suspicious"].includes(level)) {
+            medium++;
+        } else if (["low", "safe"].includes(level)) {
+            safe++;
+        }
+    }
+
+    totalScanned.textContent = total;
+    badCount.textContent = bad;
+    mediumCount.textContent = medium;
+    safeCount.textContent = safe;
+}
+
+// Updates the current email and counts when Gmail changes storage.
+// Counting itself now happens in content.js, which is always running on Gmail.
+chrome.storage.onChanged.addListener(async (changes, areaName) => {
+    if (areaName !== "local") {
+        return;
+    }
+
+    if (changes.emailSubject || changes.currentEmail) {
+        const data = await chrome.storage.local.get([
+            "emailSubject",
+            "currentEmail"
+        ]);
+
+        currentEmail.textContent =
+            data.emailSubject || data.currentEmail || "No email detected";
+    }
+
+    if (changes.emailSender) {
+        emailSender.textContent =
+            changes.emailSender.newValue || "No sender detected";
+    }
+
+    if (changes.emailAnalysis) {
+        const analysis = changes.emailAnalysis.newValue;
+
+        if (analysis) {
+            updateRisk(
+                analysis.risk_level || "unknown",
+                analysis.risk_score ?? "N/A"
+            );
+
+            openAIDetails.textContent =
+                analysis.explanation || "No explanation available.";
+        }
+    }
+
+    // Show LOADING when there's no AI result yet.
+    if (changes.riskLevel || changes.riskScore) {
+        const data = await chrome.storage.local.get([
+            "emailAnalysis",
+            "riskLevel",
+            "riskScore"
+        ]);
+
+        if (!data.emailAnalysis) {
+            updateRisk(data.riskLevel, data.riskScore ?? "N/A");
+        }
+    }
+
+    // Restore the cached analysis for the selected email.
+    if (changes.currentMessageId?.newValue) {
+        const messageId = changes.currentMessageId.newValue;
+        const saved = await chrome.storage.local.get(`foxwatch_${messageId}`);
+        const record = saved[`foxwatch_${messageId}`];
+
+        if (record?.data?.aiAnalysis) {
+            const analysis = record.data.aiAnalysis;
+
+            updateRisk(
+                analysis.risk_level || "unknown",
+                analysis.risk_score ?? "N/A"
+            );
+
+            openAIDetails.textContent =
+                analysis.explanation || "No explanation available.";
+        }
+    }
 
     if (
-        areaName === "local" &&
-        (changes.latestScanResults || changes.latestScanEmail)
+        changes.emailAnalysis ||
+        changes.currentMessageId ||
+        changes.countedEmailIds ||
+        changes.emailOpenedAt ||
+        Object.keys(changes).some(key => key.startsWith("foxwatch_"))
     ) {
-
-        chrome.storage.local.get(
-            ["latestScanResults", "latestScanEmail"],
-            displayLatestScan
-        );
+        await updateStatistics();
     }
 });
 
-// View Details page navigation
-const viewDetailsButton = document.getElementById("viewDetailsButton");
-const backButton = document.getElementById("backButton");
-const mainView = document.getElementById("mainView");
-const detailsView = document.getElementById("detailsView");
+// Analyzer ON/OFF.
+analyzerToggle.addEventListener("change", () => {
+    const enabled = analyzerToggle.checked;
 
-if (viewDetailsButton && backButton && mainView && detailsView) {
-    viewDetailsButton.addEventListener("click", () => {
-        mainView.hidden = true;
-        detailsView.hidden = false;
-    });
+    chrome.storage.local.set({ analyzerEnabled: enabled });
+    updateAnalyzerStatus(enabled);
+});
 
-    backButton.addEventListener("click", () => {
-        detailsView.hidden = true;
-        mainView.hidden = false;
-    });
+// Opens Scan Details.
+document.getElementById("viewDetailsButton").addEventListener("click", async () => {
+    const data = await chrome.storage.local.get([
+        "currentEmail",
+        "emailSubject",
+        "emailAnalysis",
+        "currentMessageId"
+    ]);
+
+    detailsEmail.textContent =
+        data.emailSubject || data.currentEmail || "No email selected";
+
+    openAIDetails.textContent =
+        data.emailAnalysis?.explanation || "No saved OpenAI results available.";
+
+    const saved = data.currentMessageId
+        ? await chrome.storage.local.get(`foxwatch_${data.currentMessageId}`)
+        : {};
+
+    const record = data.currentMessageId
+        ? saved[`foxwatch_${data.currentMessageId}`]
+        : null;
+
+    const linkScans = record?.data?.linkScans;
+
+    if (!Array.isArray(linkScans)) {
+        virusTotalDetails.textContent = "No saved VirusTotal results available.";
+    } else if (linkScans.length === 0) {
+        virusTotalDetails.textContent = "No links were found in this email to scan.";
+    } else {
+        virusTotalDetails.textContent = linkScans.map(scan => {
+            const url = scan.url || "Unknown URL";
+            const result = scan.result;
+
+            return `${url}\n${JSON.stringify(result, null, 2)}`;
+        }).join("\n\n");
+    }
+
+    showView("details");
+});
+
+document.getElementById("backButton").addEventListener("click", () => {
+    showView("main");
+});
+
+// Displays emails in the selected risk category.
+// Only shows emails counted since the last Clear, so it matches the stats.
+async function showCategory(category) {
+    const allData = await chrome.storage.local.get(null);
+    const countedIds = allData.countedEmailIds || [];
+    const emails = [];
+
+    for (const messageId of countedIds) {
+        const record = allData[`foxwatch_${messageId}`];
+
+        if (!record?.data?.aiAnalysis) {
+            continue;
+        }
+
+        const savedData = record.data;
+        const analysis = savedData.aiAnalysis;
+        const level = (analysis.risk_level || "").toLowerCase();
+
+        let matches = false;
+
+        if (category === "Bad") {
+            matches = ["high", "bad", "malicious"].includes(level);
+        } else if (category === "Medium") {
+            matches = ["medium", "suspicious"].includes(level);
+        } else if (category === "Safe") {
+            matches = ["low", "safe"].includes(level);
+        }
+
+        if (matches) {
+            emails.push({
+                subject: savedData.emailSubject || savedData.subject || "Unknown subject",
+                sender: savedData.emailSender || savedData.sender || "Unknown sender",
+                score: analysis.risk_score ?? "N/A"
+            });
+        }
+    }
+
+    categoryTitle.textContent = category + " Emails";
+    categoryEmailList.replaceChildren();
+
+    if (emails.length === 0) {
+        categoryEmailList.textContent = "No emails in this category yet.";
+    } else {
+        emails.forEach(email => {
+            const item = document.createElement("div");
+            item.className = "category-email-item";
+
+            const subject = document.createElement("strong");
+            subject.textContent = email.subject;
+
+            const sender = document.createElement("div");
+            sender.textContent = "From: " + email.sender;
+
+            const score = document.createElement("div");
+            score.textContent = "Risk score: " + email.score;
+
+            item.append(subject, sender, score);
+            categoryEmailList.appendChild(item);
+        });
+    }
+
+    showView("category");
 }
+
+document.getElementById("badCategoryButton").addEventListener("click", () => {
+    showCategory("Bad");
+});
+
+document.getElementById("mediumCategoryButton").addEventListener("click", () => {
+    showCategory("Medium");
+});
+
+document.getElementById("safeCategoryButton").addEventListener("click", () => {
+    showCategory("Safe");
+});
+
+document.getElementById("categoryBackButton").addEventListener("click", () => {
+    showView("main");
+});
+
+// Clears statistics without deleting saved email analyses.
+clearStatisticsButton.addEventListener("click", async () => {
+    await chrome.storage.local.set({
+        countedEmailIds: [],
+        emailOpenedAt: null
+    });
+
+    totalScanned.textContent = "0";
+    badCount.textContent = "0";
+    mediumCount.textContent = "0";
+    safeCount.textContent = "0";
+});
+
+loadDashboard();

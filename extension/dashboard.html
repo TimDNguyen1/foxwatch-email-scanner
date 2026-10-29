@@ -34,14 +34,22 @@
             <!-- Current Email -->
             <section class="section">
                 <div class="section-label">CURRENT EMAIL</div>
-                <div id="currentEmail" class="email-subject">
-                    No email detected
+
+                <div class="email-info">
+                    <div class="email-sender">
+                        <span class="email-field-label">From:</span>
+                        <span id="emailSender">No sender detected</span>
+                    </div>
+
+                    <div class="email-subject">
+                        <span class="email-field-label">Subject:</span>
+                        <span id="currentEmail">No email detected</span>
+                    </div>
                 </div>
             </section>
 
             <!-- Risk -->
             <section class="section risk-section">
-
                 <button id="viewDetailsButton" class="details-button">
                     View Details
                 </button>
@@ -56,48 +64,71 @@
                 <div class="risk-score">
                     Score: <span id="riskScore">0</span>
                 </div>
-
             </section>
 
             <!-- Scan Statistics -->
             <section class="section statistics">
-                <div class="section-label">SCAN STATISTICS</div>
+                <div class="statistics-header">
+                    <div class="section-label">SCAN STATISTICS</div>
+                    <button id="clearStatisticsButton" class="clear-statistics-button">
+                        Clear
+                    </button>
+                </div>
 
                 <div class="stat-row total-row">
                     <span>Total Emails Scanned</span>
                     <strong id="totalScanned">0</strong>
                 </div>
 
-                <div class="stat-row">
-                    <div class="stat-name">
+                <button class="stat-row category-button" id="badCategoryButton">
+                    <span class="stat-name">
                         <span class="stat-dot bad"></span>
                         Bad
-                    </div>
+                    </span>
                     <strong id="badCount">0</strong>
-                </div>
+                </button>
 
-                <div class="stat-row">
-                    <div class="stat-name">
+                <button class="stat-row category-button" id="mediumCategoryButton">
+                    <span class="stat-name">
                         <span class="stat-dot medium"></span>
                         Medium
-                    </div>
+                    </span>
                     <strong id="mediumCount">0</strong>
-                </div>
+                </button>
 
-                <div class="stat-row">
-                    <div class="stat-name">
+                <button class="stat-row category-button" id="safeCategoryButton">
+                    <span class="stat-name">
                         <span class="stat-dot safe"></span>
                         Safe
-                    </div>
+                    </span>
                     <strong id="safeCount">0</strong>
-                </div>
+                </button>
             </section>
 
         </div>
 
+        <!-- - Osman: Shows emails in the selected risk category. -->
+        <div id="categoryView" hidden>
+            <header class="header">
+                <div>
+                    <div class="logo" id="categoryTitle">Emails</div>
+                    <div class="subtitle">Scanned email history</div>
+                </div>
+
+                <button id="categoryBackButton" class="back-button">
+                    &larr; Back
+                </button>
+            </header>
+
+            <section class="section">
+                <div id="categoryEmailList">
+                    No emails in this category yet.
+                </div>
+            </section>
+        </div>
+
         <!-- Details View -->
         <div id="detailsView" hidden>
-
             <header class="header details-header">
                 <div>
                     <div class="logo">Scan Details</div>
@@ -126,7 +157,6 @@
                     No saved OpenAI results available.
                 </div>
             </section>
-
         </div>
 
     </div>
