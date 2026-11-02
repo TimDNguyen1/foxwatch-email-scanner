@@ -98,6 +98,17 @@ async function cacheResult(messageId, data) {
     });
 }
 
+async function markEmailCounted(messageId) {
+    if (!messageId) return;
+
+    const { countedEmailIds = [] } = await chrome.storage.local.get("countedEmailIds");
+
+    if (!countedEmailIds.includes(messageId)) {
+        countedEmailIds.push(messageId);
+        await chrome.storage.local.set({ countedEmailIds });
+    }
+}
+
 
 let lastEmail = "";
 let debounceTimer = null;
@@ -137,14 +148,22 @@ function handleMutation() {
         // Saves the subject of the newly detected email
         // so the FoxWatch dashboard can display the current email.
         chrome.storage.local.set({
-            currentEmail: email.subject
+            currentEmail: email.subject,
+            emailSender: email.sender,
+            emailSubject: email.subject,
+            emailAnalysis: null,
+            riskLevel: "loading",
+            riskScore: "...",
+            currentMessageId: getCurrentMessageId(),
+            emailOpenedAt: Date.now()
         });
 
         // - Dang for logging purposes, prints the subject, sender, and links of the newly detected email
         console.log("New email opened:", email.subject, "from", email.sender, "with links:", email.links);
 
-
         const messageId = getCurrentMessageId();
+
+        await markEmailCounted(messageId);
 
         if (messageId && inFlight.has(messageId)) {
             console.log("⏳ Scan already in progress for:", messageId);
@@ -158,6 +177,15 @@ function handleMutation() {
             const cached = messageId ? await getCachedResult(messageId) : null;
             if (cached && cached.data.aiAnalysis) {
                 console.log("✅ CACHE HIT for message:", messageId, cached.data);
+
+                // - Osman
+                // Restores this email's saved OpenAI score on the dashboard.
+                await chrome.storage.local.set({
+                    emailAnalysis: cached.data.aiAnalysis,
+                    riskLevel: cached.data.aiAnalysis.risk_level || "unknown",
+                    riskScore: cached.data.aiAnalysis.risk_score ?? "N/A"
+                });
+
                 showBanner(cached.data.aiAnalysis);
                 return;
             }
@@ -182,14 +210,31 @@ function handleMutation() {
             } catch (error) {
                 console.error("Email body analysis failed:", error);
             }
-            const result = { linkScans, emailBodyAnalysis, aiAnalysis };
+ 
+            // - Osman
+            // Saves the email details and analysis for dashboard history.
+            const result = {
+                emailSender: email.sender,
+                emailSubject: email.subject,
+                linkScans,
+                emailBodyAnalysis,
+                aiAnalysis
+            };
 
-            const allSucceeded = aiAnalysis !== null && linkScans.length === email.links.length;
-            if (messageId && allSucceeded) {
+            if (messageId) {
                 await cacheResult(messageId, result);
             }
 
+            if (aiAnalysis !== null) {
+                await chrome.storage.local.set({
+                    emailAnalysis: aiAnalysis,
+                    riskLevel: aiAnalysis.risk_level || "unknown",
+                    riskScore: aiAnalysis.risk_score ?? "N/A"
+                });
+            }
+
             console.log("NEW EMAIL ANALYZED:", result);
+
         } finally {
             // Always release the lock, even if the scan failed
             if (messageId) inFlight.delete(messageId);
