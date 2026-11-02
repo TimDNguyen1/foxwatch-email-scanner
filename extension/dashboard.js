@@ -42,7 +42,7 @@ function updateRisk(level, score) {
 
     // While the email is still being analyzed, show LOADING and hide the dot.
     if (normalized === "loading") {
-        riskLevel.textContent = "LOADING...";
+        riskLevel.textContent = "Waiting on VirusTotal...";
         riskScore.textContent = "...";
         riskIndicator.style.display = "none";
         return;
@@ -254,12 +254,49 @@ document.getElementById("viewDetailsButton").addEventListener("click", async () 
     } else if (linkScans.length === 0) {
         virusTotalDetails.textContent = "No links were found in this email to scan.";
     } else {
-        virusTotalDetails.textContent = linkScans.map(scan => {
-            const url = scan.url || "Unknown URL";
-            const result = scan.result;
+        virusTotalDetails.replaceChildren();
 
-            return `${url}\n${JSON.stringify(result, null, 2)}`;
-        }).join("\n\n");
+        linkScans.forEach(scan => {
+            const result = scan.result || {};
+            const malicious = result.malicious ?? 0;
+            const suspicious = result.suspicious ?? 0;
+            const total = malicious + suspicious + (result.harmless ?? 0) + (result.undetected ?? 0);
+
+            let verdict = "Clean";
+            let color = "#1e8e3e";
+
+            if (malicious > 0) {
+                verdict = "Dangerous";
+                color = "#d93025";
+            } else if (suspicious > 0) {
+                verdict = "Suspicious";
+                color = "#f9ab00";
+            }
+
+            const item = document.createElement("div");
+            item.style.marginBottom = "12px";
+
+            const site = document.createElement("div");
+            site.style.fontWeight = "bold";
+            site.style.wordBreak = "break-all";
+            try {
+                site.textContent = new URL(scan.url).hostname;
+            } catch {
+                site.textContent = scan.url || "Unknown URL";
+            }
+
+            const status = document.createElement("div");
+            status.style.color = color;
+            status.style.fontWeight = "bold";
+            status.textContent = verdict;
+
+            const counts = document.createElement("div");
+            counts.textContent =
+                `${malicious} of ${total} security vendors flagged this link as malicious, ${suspicious} as suspicious.`;
+
+            item.append(site, status, counts);
+            virusTotalDetails.appendChild(item);
+        });
     }
 
     showView("details");
