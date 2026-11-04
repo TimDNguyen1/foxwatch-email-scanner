@@ -1,5 +1,4 @@
-﻿
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,28 +10,52 @@
 <body>
     <div class="dashboard">
 
-        <!-- Main Dashboard -->
-        <div id="mainView">
-
-            <header class="header">
+        <!-- - Osman: header stays at the top on every page -->
+        <header class="header main-header">
+            <div>
                 <div class="logo">FoxWatch</div>
                 <div class="subtitle">Email Protection</div>
-            </header>
+            </div>
 
-            <!-- Analyzer Toggle -->
-            <section class="section analyzer-section">
-                <div class="section-label">ANALYZER</div>
-
+            <div class="header-toggle">
                 <label class="switch">
                     <input type="checkbox" id="analyzerToggle" checked>
                     <span class="slider"></span>
                 </label>
 
                 <span id="analyzerStatus" class="status-text">ON</span>
-            </section>
+            </div>
+        </header>
 
-            <!-- Current Email -->
-            <section class="section">
+        <!-- Main Dashboard -->
+        <div id="mainView">
+
+            <!-- - Osman: Risk and Current Email in one card -->
+            <section class="section risk-section">
+                <button id="viewDetailsButton" class="details-button">
+                    View Details
+                </button>
+
+                <div class="section-label risk-title">RISK</div>
+
+                <!-- - Osman: two tiles, one for OpenAI and one for VirusTotal -->
+                <div class="risk-tiles">
+                    <div id="openaiTile" class="risk-tile">
+                        <div class="tile-label">OpenAI</div>
+                        <span id="riskIndicator" class="risk-dot safe"></span>
+                        <div class="tile-main" id="riskLevel">Waiting</div>
+                        <div class="tile-detail">Score: <span id="riskScore">...</span></div>
+                    </div>
+
+                    <div id="vtTile" class="risk-tile">
+                        <div class="tile-label">VirusTotal</div>
+                        <div class="tile-main" id="vtStatus">Waiting</div>
+                        <div class="tile-detail" id="vtDetail">...</div>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
                 <div class="section-label">CURRENT EMAIL</div>
 
                 <div class="email-info">
@@ -45,24 +68,6 @@
                         <span class="email-field-label">Subject:</span>
                         <span id="currentEmail">No email detected</span>
                     </div>
-                </div>
-            </section>
-
-            <!-- Risk -->
-            <section class="section risk-section">
-                <button id="viewDetailsButton" class="details-button">
-                    View Details
-                </button>
-
-                <div class="section-label">RISK</div>
-
-                <div class="risk-container">
-                    <span id="riskIndicator" class="risk-dot safe"></span>
-                    <span id="riskLevel">SAFE</span>
-                </div>
-
-                <div class="risk-score">
-                    Score: <span id="riskScore">0</span>
                 </div>
             </section>
 
@@ -109,16 +114,16 @@
 
         <!-- - Osman: Shows emails in the selected risk category. -->
         <div id="categoryView" hidden>
-            <header class="header">
+            <div class="page-title-row">
                 <div>
-                    <div class="logo" id="categoryTitle">Emails</div>
+                    <div class="page-title" id="categoryTitle">Emails</div>
                     <div class="subtitle">Scanned email history</div>
                 </div>
 
                 <button id="categoryBackButton" class="back-button">
                     &larr; Back
                 </button>
-            </header>
+            </div>
 
             <section class="section">
                 <div id="categoryEmailList">
@@ -129,9 +134,10 @@
 
         <!-- Details View -->
         <div id="detailsView" hidden>
-            <header class="header details-header">
+            <!-- - Osman: page title and Back button under the header -->
+            <div class="page-title-row">
                 <div>
-                    <div class="logo">Scan Details</div>
+                    <div class="page-title">Scan Details</div>
                     <div class="subtitle" id="detailsEmail">
                         No email selected
                     </div>
@@ -140,18 +146,17 @@
                 <button id="backButton" class="back-button">
                     &larr; Back
                 </button>
-            </header>
+            </div>
 
-            <!-- VirusTotal Results -->
+            <!-- - Osman: VirusTotal and OpenAI in one card -->
             <section class="section">
                 <div class="section-label">VIRUSTOTAL RESULTS</div>
                 <div id="virusTotalDetails">
                     No saved VirusTotal results available.
                 </div>
-            </section>
 
-            <!-- OpenAI Analysis -->
-            <section class="section">
+                <div class="section-divider"></div>
+
                 <div class="section-label">OPENAI ANALYSIS</div>
                 <div id="openAIDetails">
                     No saved OpenAI results available.

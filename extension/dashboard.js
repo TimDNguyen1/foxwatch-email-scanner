@@ -6,6 +6,10 @@ const emailSender = document.getElementById("emailSender");
 const riskIndicator = document.getElementById("riskIndicator");
 const riskLevel = document.getElementById("riskLevel");
 const riskScore = document.getElementById("riskScore");
+const vtStatus = document.getElementById("vtStatus"); // osman
+const vtDetail = document.getElementById("vtDetail"); // osman
+const openaiTile = document.getElementById("openaiTile"); // osman
+const vtTile = document.getElementById("vtTile"); // osman
 
 const detailsEmail = document.getElementById("detailsEmail");
 const openAIDetails = document.getElementById("openAIDetails");
@@ -39,10 +43,11 @@ function updateRisk(level, score) {
     const normalized = (level || "unknown").toLowerCase();
 
     riskIndicator.className = "risk-dot";
+    openaiTile.className = "risk-tile"; // osman
 
     // While the email is still being analyzed, show LOADING and hide the dot.
-    if (normalized === "loading") {
-        riskLevel.textContent = "Waiting on VirusTotal...";
+    if (normalized === "loading" || normalized === "stopped") {
+        riskLevel.textContent = normalized === "stopped" ? "Stopped" : "Analyzing...";
         riskScore.textContent = "...";
         riskIndicator.style.display = "none";
         return;
@@ -59,6 +64,49 @@ function updateRisk(level, score) {
     } else {
         riskIndicator.classList.add("safe");
     }
+
+    openaiTile.classList.add("tile-" + riskIndicator.classList[1]); // osman - colors the OpenAI tile
+}
+
+// osman - fills in the VirusTotal tile (main text, small text, color)
+function showVirusTotal(main, detail, color) {
+    vtStatus.textContent = main;
+    vtDetail.textContent = detail;
+    vtTile.className = color ? "risk-tile tile-" + color : "risk-tile";
+}
+
+// osman - picks what the VirusTotal tile should say
+function updateVirusTotal(status, currentId) {
+    if (!status || status.messageId !== currentId || status.state === "waiting") {
+        return showVirusTotal("Waiting", "Starts after OpenAI");
+    }
+
+    if (status.state === "scanning") {
+        return status.total
+            ? showVirusTotal("Scanning", `${status.total} link${status.total === 1 ? "" : "s"}...`)
+            : showVirusTotal("No links", "Nothing to scan");
+    }
+
+    const scans = status.linkScans || [];
+    const dangerous = scans.filter(s => (s.result?.malicious ?? 0) > 0).length;
+    const suspicious = scans.filter(s => !((s.result?.malicious ?? 0) > 0) && (s.result?.suspicious ?? 0) > 0).length;
+
+    if (!status.total) return showVirusTotal("No links", "Nothing to scan");
+    if (scans.length === 0) return showVirusTotal("Error", "Couldn't scan links");
+    if (dangerous) return showVirusTotal("Dangerous", `${dangerous} of ${scans.length} links`, "bad");
+    if (suspicious) return showVirusTotal("Suspicious", `${suspicious} of ${scans.length} links`, "medium");
+    showVirusTotal("Clean", `All ${scans.length} links`, "safe");
+}
+
+// osman - shows "Scan stopped" if the OFF button cancelled the current scan
+async function showScanStopped() {
+    const data = await chrome.storage.local.get(["emailAnalysis", "vtStatus", "currentMessageId"]);
+
+    if (!data.emailAnalysis) updateRisk("stopped");
+
+    if (data.vtStatus?.messageId !== data.currentMessageId || data.vtStatus?.state !== "done") {
+        showVirusTotal("Stopped", "Analyzer was turned off");
+    }
 }
 
 // Loads the current email and dashboard information.
@@ -70,7 +118,9 @@ async function loadDashboard() {
         "emailSubject",
         "emailAnalysis",
         "riskLevel",
-        "riskScore"
+        "riskScore",
+        "vtStatus",
+        "currentMessageId"
     ]);
 
     const enabled = data.analyzerEnabled !== false;
@@ -95,6 +145,9 @@ async function loadDashboard() {
     } else {
         updateRisk(data.riskLevel || "unknown", data.riskScore ?? "N/A");
     }
+
+    updateVirusTotal(data.vtStatus, data.currentMessageId); // osman
+    if (!enabled) await showScanStopped(); // osman
 
     await updateStatistics();
 }
@@ -174,7 +227,7 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
     }
 
     // Show LOADING when there's no AI result yet.
-    if (changes.riskLevel || changes.riskScore) {
+    if (changes.riskLevel || changes.riskScore || changes.emailOpenedAt) {
         const data = await chrome.storage.local.get([
             "emailAnalysis",
             "riskLevel",
@@ -184,6 +237,12 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
         if (!data.emailAnalysis) {
             updateRisk(data.riskLevel, data.riskScore ?? "N/A");
         }
+    }
+
+    // osman - update the VirusTotal line
+    if (changes.vtStatus || changes.currentMessageId) {
+        const data = await chrome.storage.local.get(["vtStatus", "currentMessageId"]);
+        updateVirusTotal(data.vtStatus, data.currentMessageId);
     }
 
     // Restore the cached analysis for the selected email.
@@ -222,6 +281,7 @@ analyzerToggle.addEventListener("change", () => {
 
     chrome.storage.local.set({ analyzerEnabled: enabled });
     updateAnalyzerStatus(enabled);
+    if (!enabled) showScanStopped(); // osman
 });
 
 // Opens Scan Details.

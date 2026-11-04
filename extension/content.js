@@ -1,6 +1,7 @@
 console.log("FoxWatch extension loaded on Gmail.");
 
 let analyzerEnabled = true;
+let scanGeneration = 0; // osman - goes up each time the analyzer is turned off
 
 chrome.storage.local.get(["analyzerEnabled"], (result) => {
     analyzerEnabled = result.analyzerEnabled !== false;
@@ -10,6 +11,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === "local" && changes.analyzerEnabled) {
         analyzerEnabled = changes.analyzerEnabled.newValue !== false;
         lastEmail = "";
+        if (!analyzerEnabled) scanGeneration++; // osman - cancels scans that are still running
 
         console.log(
             "FoxWatch Analyzer:",
@@ -49,7 +51,7 @@ function getCurrentEmail() {
             .map(link => {
                 const safeUrl = link.getAttribute("data-saferedirecturl");
                 let rawHref = unwrapGoogleUrl(safeUrl || link.getAttribute("href"));
-            
+
                 if (!rawHref) return null;
 
                 // Resolve relative paths into absolute URLs using Gmail's base origin
@@ -59,10 +61,10 @@ function getCurrentEmail() {
                 } catch (e) {
                     return null;
                 }
-        })
-        // Enforce that only valid web protocols (http/https) are sent to VirusTotal
-        .filter(href => href && (href.startsWith("http://") || href.startsWith("https://"))
-            && !href.startsWith(window.location.origin))
+            })
+            // Enforce that only valid web protocols (http/https) are sent to VirusTotal
+            .filter(href => href && (href.startsWith("http://") || href.startsWith("https://"))
+                && !href.startsWith(window.location.origin))
     )];
 
     return {
@@ -121,7 +123,7 @@ function handleMutation() {
     }
 
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout( async() => {
+    debounceTimer = setTimeout(async () => {
         if (!isEmailOpenByHash()) {
             // Explicitly closed — reset state so a re-open of the
             // same email is treated as new next time.
@@ -155,7 +157,8 @@ function handleMutation() {
             riskLevel: "loading",
             riskScore: "...",
             currentMessageId: getCurrentMessageId(),
-            emailOpenedAt: Date.now()
+            emailOpenedAt: Date.now(),
+            vtStatus: { messageId: getCurrentMessageId(), state: "waiting" } // osman - VirusTotal line in the popup
         });
 
         // - Dang for logging purposes, prints the subject, sender, and links of the newly detected email
@@ -170,6 +173,7 @@ function handleMutation() {
             return;
         }
         if (messageId) inFlight.add(messageId);
+        const myGeneration = scanGeneration; // osman - remembers which scan this is
 
         //check cache before treating this as something to analyze - tim
         // Cynthia - Adjusted for openai analysis and banner
@@ -183,7 +187,8 @@ function handleMutation() {
                 await chrome.storage.local.set({
                     emailAnalysis: cached.data.aiAnalysis,
                     riskLevel: cached.data.aiAnalysis.risk_level || "unknown",
-                    riskScore: cached.data.aiAnalysis.risk_score ?? "N/A"
+                    riskScore: cached.data.aiAnalysis.risk_score ?? "N/A",
+                    vtStatus: { messageId, state: "done", linkScans: cached.data.linkScans || [], total: (cached.data.linkScans || []).length } // osman
                 });
 
                 showBanner(cached.data.aiAnalysis);
@@ -198,19 +203,31 @@ function handleMutation() {
                 aiAnalysis = await analyzeEmailWithAI(email);
                 console.log("AI ANALYSIS:", aiAnalysis);
                 showBanner(aiAnalysis);
+                if (getCurrentMessageId() === messageId) chrome.storage.local.set({ emailAnalysis: aiAnalysis }); // osman - show OpenAI score right away
             } catch (error) {
                 console.error("AI analysis failed:", error);
                 showBanner(null);
             }
 
+            if (scanGeneration !== myGeneration) return; // osman - stop if turned off during AI analysis
+            chrome.storage.local.set({ vtStatus: { messageId, state: "scanning", total: email.links.length } }); // osman
+
             const linkScans = await scanUrlList(email.links);
+
+            // osman - dont cache partial results when analyzer is off during midscan
+            if (!analyzerEnabled || scanGeneration !== myGeneration) {
+                console.log("FoxWatch turned off, scan stopped and not saved");
+                return;
+            }
+            chrome.storage.local.set({ vtStatus: { messageId, state: "done", linkScans, total: email.links.length } }); // osman
+
             let emailBodyAnalysis = null;
             try {
                 emailBodyAnalysis = await scanEmailBody(email.body);
             } catch (error) {
                 console.error("Email body analysis failed:", error);
             }
- 
+
             // - Osman
             // Saves the email details and analysis for dashboard history.
             const result = {
@@ -271,8 +288,15 @@ async function sendVirusTotalUrl(selectedUrl) {
 // Function to scan a list of URLs and store the results
 async function scanUrlList(urlList) {
     const scanResults = [];
+    const startGeneration = scanGeneration; // osman - remembers which scan this is
 
     for (let i = 0; i < urlList.length; i++) {
+        // - Osman: stop scanning links as soon as the analyzer is turned off
+        if (!analyzerEnabled || scanGeneration !== startGeneration) {
+            console.log("FoxWatch turned off, stopping link scans");
+            break;
+        }
+
         const url = urlList[i];
         try {
             const result = await sendVirusTotalUrl(url);
@@ -284,7 +308,7 @@ async function scanUrlList(urlList) {
 
         // Actually pause between scans (skip after the last one)
         if (i < urlList.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 15000));
+            for (let w = 0; w < 30 && analyzerEnabled && scanGeneration === startGeneration; w++) await new Promise(resolve => setTimeout(resolve, 500)); // osman - changed Dang's 15s wait so it stops early if turned off
         }
     }
     return scanResults;
