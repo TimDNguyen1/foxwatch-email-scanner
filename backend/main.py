@@ -6,6 +6,7 @@ from functools import lru_cache
 from openai import AsyncOpenAI
 from typing import Literal
 from pydantic import Field
+from alerts import ScamType, allow_alert, build_alert_message, is_valid_email, send_alert_email
 import uvicorn
 import httpx
 import asyncio
@@ -46,6 +47,7 @@ class EmailRequest(BaseModel):
 class EmailAnalysis(BaseModel):
     risk_level: Literal["low", "medium", "high"]
     risk_score: int = Field(ge=0, le=100)
+    scam_type: ScamType
     suspicious_indicators: list[str]
     explanation: str
 
@@ -53,6 +55,8 @@ class EmailAnalysis(BaseModel):
 class Settings(BaseSettings):
     VT_API_KEY: str
     OPENAI_API_KEY: str
+    SMTP_USER: str = ""
+    SMTP_APP_PASSWORD: str = ""
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
@@ -123,8 +127,9 @@ async def analyze_email(email: EmailRequest):
     A low risk score means fewer suspicious indicators.
     A high risk score means stronger evidence of a potential scam.
 
-    Return a risk level, a score from 0 to 100,
-    suspicious indicators, and a brief explanation.
+    Return a risk level, a score from 0 to 100, the scam type
+    that best fits, suspicious indicators, and a brief explanation.
+    Use the scam type "none" when the risk level is low.
     """
 
     email_details = f"""
@@ -165,6 +170,48 @@ async def analyze_email(email: EmailRequest):
             status_code=502,
             detail="Email analysis failed. Check the backend terminal."
         ) from error
+
+# Cynthia - sends a short warning email to the user's trusted contact
+class ContactAlertRequest(BaseModel):
+    user_name: str = Field(default="", max_length=100)
+    contact_name: str = Field(default="", max_length=100)
+    contact_email: str = Field(max_length=254)
+    risk_level: Literal["medium", "high"]
+    scam_type: ScamType = "other"
+    subject: str = Field(default="", max_length=500)
+
+
+@app.post("/notify-contact")
+async def notify_contact(alert: ContactAlertRequest):
+    if not settings.SMTP_USER or not settings.SMTP_APP_PASSWORD:
+        raise HTTPException(status_code=503, detail="Alert email is not set up on this server.")
+    if not is_valid_email(alert.contact_email):
+        raise HTTPException(status_code=422, detail="That does not look like a valid email address.")
+    if not allow_alert(alert.contact_email):
+        raise HTTPException(status_code=429, detail="Too many alerts for this contact. Try again later.")
+
+    message = build_alert_message(
+        from_address=settings.SMTP_USER,
+        to_address=alert.contact_email,
+        user_name=alert.user_name,
+        contact_name=alert.contact_name,
+        risk_level=alert.risk_level,
+        scam_type=alert.scam_type,
+        subject=alert.subject,
+    )
+
+    try:
+        await asyncio.to_thread(
+            send_alert_email, message, settings.SMTP_USER, settings.SMTP_APP_PASSWORD
+        )
+    except Exception as error:
+        print("Alert email error:", error)
+        raise HTTPException(
+            status_code=502,
+            detail="Could not send the alert email. Check the backend terminal.",
+        ) from error
+
+    return {"ok": True}
 
 # Dang - uvicorn server configuration
 if __name__ == "__main__":
