@@ -36,7 +36,8 @@ function unwrapGoogleUrl(rawUrl) {
 // List for safe domains can be expanded as needed. This is to avoid unnecessary VirusTotal scans for known safe links.
 let safeDomains = [
     "google.com",
-    "youtube.com"
+    "youtube.com",
+    "c.gle",
 ];
 
 function isSafeDomain(url) {
