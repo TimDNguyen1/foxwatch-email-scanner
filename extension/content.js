@@ -32,6 +32,31 @@ function unwrapGoogleUrl(rawUrl) {
     return rawUrl;
 }
 
+// Dang - Bypass for known links that are already safe (like Google Drive, YouTube, etc.)
+// List for safe domains can be expanded as needed. This is to avoid unnecessary VirusTotal scans for known safe links.
+let safeDomains = [
+    "google.com",
+    "youtube.com"
+];
+
+function isSafeDomain(url) {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        return safeDomains.some(domain => hostname === domain || hostname.endsWith("." + domain));
+    } catch (e) {
+        return false;
+    }
+}
+
+chrome.storage.sync.get("safeDomains", (result) => {
+    safeDomains = result.safeDomains;
+});
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "sync" && changes.safeDomains) {
+        safeDomains = changes.safeDomains.newValue;
+    }
+});
+
 function getCurrentEmail() {
     const subjectElement = document.querySelector("h2.hP");
     const senderElement = document.querySelector(".gD");
@@ -64,7 +89,8 @@ function getCurrentEmail() {
             })
             // Enforce that only valid web protocols (http/https) are sent to VirusTotal
             .filter(href => href && (href.startsWith("http://") || href.startsWith("https://"))
-                && !href.startsWith(window.location.origin))
+                && !href.startsWith(window.location.origin)
+                && !isSafeDomain(href))
     )];
 
     return {
