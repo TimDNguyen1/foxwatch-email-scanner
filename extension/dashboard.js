@@ -28,6 +28,70 @@ const categoryView = document.getElementById("categoryView");
 const categoryTitle = document.getElementById("categoryTitle");
 const categoryEmailList = document.getElementById("categoryEmailList");
 
+// Dang - function for adding safe domains to the bypass list for VirusTotal scans. This is to avoid unnecessary scans for known safe links.
+const listSafeDomains = document.getElementById("bypassList");
+const inputSafeDomain = document.getElementById("newDomainInput");
+const errorSafeDomain = document.getElementById("error");
+
+function normalizeDomain(domain) {
+    let e = domain.trim().toLowerCase().replace(/^\*\./, "");
+    try {
+        if (!/^https?:\/\//.test(e)) e = "http://" + e;
+        return new URL(e).hostname;
+    } catch (err) {
+        console.error("Invalid domain:", domain, err);
+        return null;
+    }
+}
+
+function renderSafeDomains(domains) {
+    listSafeDomains.innerHTML = "";
+    domains.forEach(domain => {
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.textContent = domain;
+        const removeButton = document.createElement("button");
+        removeButton.textContent = "Remove";
+        removeButton.addEventListener("click", () => {
+            save(domains.filter(d => d !== domain));
+        });
+        li.append(span, removeButton);
+        listSafeDomains.appendChild(li);
+    });
+};
+
+function save(domains) {
+    chrome.storage.local.set({ safeDomains: domains }, () => {
+        if (chrome.runtime.lastError) {
+            console.error("Error saving safe domains:", chrome.runtime.lastError);
+            return;
+        }
+        renderSafeDomains(domains);
+    });
+}
+
+document.getElementById("addDomainButton").addEventListener("click", () => {
+    const newDomain = normalizeDomain(inputSafeDomain.value);
+    if (!newDomain) {
+        errorSafeDomain.textContent = "Invalid domain format.";
+        return;
+    }
+    errorSafeDomain.textContent = "";
+    chrome.storage.local.get({ safeDomains: [] }, (result) => {
+        if (result.safeDomains.includes(newDomain)) {
+            errorSafeDomain.textContent = "Domain already exists in the list.";
+            return;
+        }
+        errorSafeDomain.textContent = "";
+        inputSafeDomain.value = "";
+        save([...result.safeDomains, newDomain]);
+    });
+});
+
+chrome.storage.local.get({ safeDomains: [] }, result => {
+    renderSafeDomains((result && result.safeDomains) || []);
+});
+
 function showView(view) {
     mainView.hidden = view !== "main";
     detailsView.hidden = view !== "details";

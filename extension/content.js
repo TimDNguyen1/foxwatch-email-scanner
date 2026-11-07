@@ -20,6 +20,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
 });
 
+// Dang - add a domain to the safe list, stripping any leading "*." and normalizing to lowercase
+function normalizeDomain(domain) {
+    let e = domain.trim().toLowerCase().replace(/^\*\./, "");
+    try {
+        if (!/^https?:\/\//.test(e)) e = "http://" + e;
+        return new URL(e).hostname;
+    } catch (err) {
+        console.error("Invalid domain:", domain, err);
+        return null;
+    }
+}
+
 function unwrapGoogleUrl(rawUrl) {
     try {
         const parsed = new URL(rawUrl);
@@ -34,29 +46,39 @@ function unwrapGoogleUrl(rawUrl) {
 
 // Dang - Bypass for known links that are already safe (like Google Drive, YouTube, etc.)
 // List for safe domains can be expanded as needed. This is to avoid unnecessary VirusTotal scans for known safe links.
-let safeDomains = [
+let safeDomainsDefault = [
     "google.com",
     "youtube.com",
     "c.gle",
 ];
 
+let safeDomainsUser = [];
+
 function isSafeDomain(url) {
     try {
         const hostname = new URL(url).hostname.toLowerCase();
-        return safeDomains.some(domain => hostname === domain || hostname.endsWith("." + domain));
+        const all = [...safeDomainsDefault, ...safeDomainsUser];
+        return all.some(domain => hostname === domain || hostname.endsWith("." + domain));
     } catch (e) {
         return false;
     }
 }
 
-chrome.storage.sync.get("safeDomains", (result) => {
-    safeDomains = result.safeDomains;
-});
-chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "sync" && changes.safeDomains) {
-        safeDomains = changes.safeDomains.newValue;
-    }
-});
+if (typeof chrome !== "undefined" && chrome.storage) {
+    chrome.storage.local.get({ safeDomains: [] }, result => {
+        userSafeDomains = Array.isArray(result.safeDomains) ? result.safeDomains : [];
+    });
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === "local" && changes.safeDomains) {
+            const next = changes.safeDomains.newValue;
+            safeDomainsUser = Array.isArray(next) ? next : [];
+        }
+    });
+}
+else {
+    console.warn("chrome.storage.local is not available. Safe domain list will not be loaded.");
+}
 
 function getCurrentEmail() {
     const subjectElement = document.querySelector("h2.hP");
