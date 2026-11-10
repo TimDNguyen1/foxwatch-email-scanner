@@ -20,6 +20,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
 });
 
+// Dang - add a domain to the safe list, stripping any leading "*." and normalizing to lowercase
+function normalizeDomain(domain) {
+    let e = domain.trim().toLowerCase().replace(/^\*\./, "");
+    try {
+        if (!/^https?:\/\//.test(e)) e = "http://" + e;
+        return new URL(e).hostname;
+    } catch (err) {
+        console.error("Invalid domain:", domain, err);
+        return null;
+    }
+}
+
 function unwrapGoogleUrl(rawUrl) {
     try {
         const parsed = new URL(rawUrl);
@@ -30,6 +42,49 @@ function unwrapGoogleUrl(rawUrl) {
         // not a valid URL, fall through
     }
     return rawUrl;
+}
+
+// Dang - Bypass for known links that are already safe (like Google Drive, YouTube, etc.)
+// List for safe domains can be expanded as needed. This is to avoid unnecessary VirusTotal scans for known safe links.
+let safeDomainsDefault = [
+    "google.com",
+    "youtube.com",
+    "youtu.be",
+    "proton.me",
+    "c.gle",
+];
+
+let safeDomainsUser = [];
+let safeDomainsReady = Promise.resolve();
+
+function isSafeDomain(url) {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        const all = [...safeDomainsDefault, ...safeDomainsUser];
+        return all.some(domain => hostname === domain || hostname.endsWith("." + domain));
+    } catch (e) {
+        return false;
+    }
+}
+
+if (typeof chrome !== "undefined" && chrome.storage) {
+    safeDomainsReady = new Promise((resolve) => {
+        chrome.storage.local.get({ safeDomains: [] }, result => {
+            safeDomainsUser = Array.isArray(result.safeDomains) ? result.safeDomains : [];
+            console.log("FoxWatch: Loaded user-defined safe domains:", safeDomainsUser);
+            resolve();
+        });
+    });
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === "local" && changes.safeDomains) {
+            const next = changes.safeDomains.newValue;
+            safeDomainsUser = Array.isArray(next) ? next : [];
+        }
+    });
+}
+else {
+    console.warn("chrome.storage.local is not available. Safe domain list will not be loaded.");
 }
 
 function getCurrentEmail() {
@@ -64,7 +119,8 @@ function getCurrentEmail() {
             })
             // Enforce that only valid web protocols (http/https) are sent to VirusTotal
             .filter(href => href && (href.startsWith("http://") || href.startsWith("https://"))
-                && !href.startsWith(window.location.origin))
+                && !href.startsWith(window.location.origin)
+                && !isSafeDomain(href))
     )];
 
     return {
@@ -124,6 +180,7 @@ function handleMutation() {
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
+        await safeDomainsReady; // Dang - Ensure user-defined safe domains are loaded before proceeding
         if (!isEmailOpenByHash()) {
             // Explicitly closed — reset state so a re-open of the
             // same email is treated as new next time.
@@ -221,20 +278,12 @@ function handleMutation() {
             }
             chrome.storage.local.set({ vtStatus: { messageId, state: "done", linkScans, total: email.links.length } }); // osman
 
-            let emailBodyAnalysis = null;
-            try {
-                emailBodyAnalysis = await scanEmailBody(email.body);
-            } catch (error) {
-                console.error("Email body analysis failed:", error);
-            }
-
             // - Osman
             // Saves the email details and analysis for dashboard history.
             const result = {
                 emailSender: email.sender,
                 emailSubject: email.subject,
                 linkScans,
-                emailBodyAnalysis,
                 aiAnalysis
             };
 
