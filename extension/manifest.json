@@ -6,18 +6,21 @@
   "action": {
     "default_popup": "dashboard.html"
   },
+  "options_ui": {
+    "page": "setup.html",
+    "open_in_tab": true
+  },
   "permissions": ["activeTab", "storage", "nativeMessaging"],
   "host_permissions": [
     "http://127.0.0.1:8000/*"
   ],
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "service_worker": "sw.js"
   },
   "content_scripts": [
     {
       "matches": [ "https://mail.google.com/*" ],
-      "js": [ "content.js" ],
+      "js": [ "trustedcontact.js", "content.js" ],
       "css": [ "styles.css" ]
     }
   ]
