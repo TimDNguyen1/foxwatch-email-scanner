@@ -49,10 +49,13 @@ function unwrapGoogleUrl(rawUrl) {
 let safeDomainsDefault = [
     "google.com",
     "youtube.com",
+    "youtu.be",
+    "proton.me",
     "c.gle",
 ];
 
 let safeDomainsUser = [];
+let safeDomainsReady = Promise.resolve();
 
 function isSafeDomain(url) {
     try {
@@ -65,8 +68,12 @@ function isSafeDomain(url) {
 }
 
 if (typeof chrome !== "undefined" && chrome.storage) {
-    chrome.storage.local.get({ safeDomains: [] }, result => {
-        userSafeDomains = Array.isArray(result.safeDomains) ? result.safeDomains : [];
+    safeDomainsReady = new Promise((resolve) => {
+        chrome.storage.local.get({ safeDomains: [] }, result => {
+            safeDomainsUser = Array.isArray(result.safeDomains) ? result.safeDomains : [];
+            console.log("FoxWatch: Loaded user-defined safe domains:", safeDomainsUser);
+            resolve();
+        });
     });
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -173,6 +180,7 @@ function handleMutation() {
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
+        await safeDomainsReady; // Dang - Ensure user-defined safe domains are loaded before proceeding
         if (!isEmailOpenByHash()) {
             // Explicitly closed — reset state so a re-open of the
             // same email is treated as new next time.
@@ -269,13 +277,6 @@ function handleMutation() {
                 return;
             }
             chrome.storage.local.set({ vtStatus: { messageId, state: "done", linkScans, total: email.links.length } }); // osman
-
-            let emailBodyAnalysis = null;
-            try {
-                emailBodyAnalysis = await scanEmailBody(email.body);
-            } catch (error) {
-                console.error("Email body analysis failed:", error);
-            }
 
             // - Osman
             // Saves the email details and analysis for dashboard history.
