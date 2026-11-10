@@ -284,7 +284,6 @@ function handleMutation() {
                 emailSender: email.sender,
                 emailSubject: email.subject,
                 linkScans,
-                emailBodyAnalysis,
                 aiAnalysis
             };
 
