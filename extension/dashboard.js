@@ -524,3 +524,7 @@ clearStatisticsButton.addEventListener("click", async () => {
 });
 
 loadDashboard();
+// Cynthia - gear icon opens the trusted contact settings page
+document.getElementById("settingsButton").addEventListener("click", () => {
+    chrome.runtime.openOptionsPage();
+});
