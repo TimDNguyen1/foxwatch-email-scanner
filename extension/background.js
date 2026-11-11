@@ -1,4 +1,4 @@
-// Receives requests from content.js and talks to the local backend.
+// Tim: Receives requests from content.js and talks to the local backend.
 // Runs in the extension's background context, so Gmail's page restrictions don't apply.
 async function postJson(endpoint, payload) {
    const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
