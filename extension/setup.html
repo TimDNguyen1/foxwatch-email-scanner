@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoxWatch trusted contact</title>
+    <style>
+        body { margin: 0; padding: 32px 16px; background: #f4f7fb; color: #1f2937; font-family: Arial, sans-serif; }
+        .card { max-width: 520px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+        h1 { margin: 0 0 4px; font-size: 22px; }
+        .sub { color: #6b7280; margin-bottom: 18px; font-size: 14px; }
+        label { display: block; margin: 14px 0 4px; font-weight: bold; font-size: 14px; }
+        .hint { font-weight: normal; color: #6b7280; font-size: 12px; }
+        input[type="text"], input[type="email"] { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 16px; }
+        .check input { margin-top: 3px; }
+        .check label { margin: 0; font-weight: normal; }
+        .preview { margin-top: 18px; padding: 12px; background: #f1f5f9; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+        .preview-title { font-weight: bold; margin-bottom: 6px; }
+        #previewText { white-space: pre-wrap; }
+        .buttons { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        button { padding: 9px 16px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+        #saveButton { background: #2196f3; color: #fff; }
+        #skipButton { background: #e5e7eb; color: #1f2937; }
+        #removeButton { background: #fff; color: #c5221f; border: 1px solid #c5221f; }
+        #message { margin-top: 14px; font-size: 14px; min-height: 18px; }
+        .error { color: #c5221f; }
+        .ok { color: #137333; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>FoxWatch trusted contact</h1>
+        <div class="sub">Pick someone you trust to be told when FoxWatch finds a risky email. You can change this anytime from the gear icon in the FoxWatch popup.</div>
+
+        <label for="userName">Your name <span class="hint">(so they know who the alert is about)</span></label>
+        <input type="text" id="userName" maxlength="60" placeholder="Your name">
+
+        <label for="contactName">Trusted contact's name</label>
+        <input type="text" id="contactName" maxlength="60" placeholder="Their name">
+
+        <label for="contactEmail">Trusted contact's email</label>
+        <input type="email" id="contactEmail" maxlength="254" placeholder="name@example.com">
+
+        <div class="check">
+            <input type="checkbox" id="autoAlert" checked>
+            <label for="autoAlert">Automatically alert them about high-risk emails. For medium-risk emails, I'll choose each time with a button.</label>
+        </div>
+
+        <div class="preview">
+            <div class="preview-title">What your contact would receive (example)</div>
+            <div id="previewText"></div>
+        </div>
+
+        <div class="buttons">
+            <button id="saveButton">Save</button>
+            <button id="skipButton">Skip for now</button>
+            <button id="removeButton" hidden>Remove contact</button>
+        </div>
+        <div id="message"></div>
+    </div>
+    <script src="setup.js"></script>
+</body>
+</html>

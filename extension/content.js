@@ -417,4 +417,6 @@ function showBanner(analysis) {
     banner.appendChild(title);
     banner.appendChild(text);
     bodyElement.parentElement.insertBefore(banner, bodyElement);
+           // Cynthia - trusted contact alert section (defined in trustedcontact.js)
+       if (typeof addTrustedContactSection === "function") addTrustedContactSection(banner, analysis);
 }

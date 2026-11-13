@@ -475,3 +475,24 @@ body {
     margin-top: 0;
     padding: 8px 12px;
 }
+/* Cynthia - gear icon in the top right of the header */
+.gear-button {
+    margin-left: 2px;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: #6b7280;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+    .gear-button:hover {
+        color: #1f2937;
+    }
+
+    .gear-button:focus-visible {
+        outline: 2px solid #3478f6;
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
