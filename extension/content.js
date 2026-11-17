@@ -32,6 +32,7 @@ function normalizeDomain(domain) {
     }
 }
 
+// Tim: gets real, raw url instead of google redirected one
 function unwrapGoogleUrl(rawUrl) {
     try {
         const parsed = new URL(rawUrl);
@@ -100,7 +101,7 @@ function getCurrentEmail() {
     // Dang - gets links in body of email into an array
     const linkElements = bodyElement.querySelectorAll("a");
 
-    // unwrap Gmail's google.com/url redirects, then remove duplicates
+    // Tim: unwrap Gmail's google.com/url redirects, then remove duplicates
     const links = [...new Set(
         Array.from(linkElements)
             .map(link => {
@@ -109,7 +110,7 @@ function getCurrentEmail() {
 
                 if (!rawHref) return null;
 
-                // Resolve relative paths into absolute URLs using Gmail's base origin
+                // Dang: resolve relative paths into absolute URLs using Gmail's base origin
                 try {
                     const resolvedUrl = new URL(rawHref, window.location.origin);
                     return resolvedUrl.href;
@@ -117,7 +118,7 @@ function getCurrentEmail() {
                     return null;
                 }
             })
-            // Enforce that only valid web protocols (http/https) are sent to VirusTotal
+            // Tim: only valid web protocols (http/https) are sent to VirusTotal
             .filter(href => href && (href.startsWith("http://") || href.startsWith("https://"))
                 && !href.startsWith(window.location.origin)
                 && !isSafeDomain(href))
@@ -131,18 +132,18 @@ function getCurrentEmail() {
     };
 }
 
-//actually checks whether an email is open or not
+//Tim: actually checks whether an email is open or not
 function isEmailOpenByHash() {
     return /#.+\/.+/.test(window.location.hash);
 }
 
-// NEW: pulls the actual message ID out of the hash - tim
+// Tim: pulls the actual message ID out of the hash
 function getCurrentMessageId() {
     const match = window.location.hash.match(/#.+\/(.+)/);
     return match ? match[1] : null;
 }
 
-// NEW: cache read/write helpers - tim
+// Tim: added caching, to help with duplicate emails
 async function getCachedResult(messageId) {
     const key = `foxwatch_${messageId}`;
     const stored = await chrome.storage.local.get(key);
@@ -182,7 +183,7 @@ function handleMutation() {
     debounceTimer = setTimeout(async () => {
         await safeDomainsReady; // Dang - Ensure user-defined safe domains are loaded before proceeding
         if (!isEmailOpenByHash()) {
-            // Explicitly closed — reset state so a re-open of the
+            // Tim: Explicitly closed — reset state so a re-open of the
             // same email is treated as new next time.
             if (lastEmail !== "") {
                 console.log("Email closed — resetting state");
@@ -198,7 +199,7 @@ function handleMutation() {
         const emailIdentifier = email.sender + email.subject + email.body;
 
         if (emailIdentifier === lastEmail) {
-            return; // true duplicate, ignore
+            return; // Tim: prevents reading duplicate emails
         }
 
         lastEmail = emailIdentifier;
@@ -232,7 +233,7 @@ function handleMutation() {
         if (messageId) inFlight.add(messageId);
         const myGeneration = scanGeneration; // osman - remembers which scan this is
 
-        //check cache before treating this as something to analyze - tim
+        //Tim: check cache before treating this as something to analyze
         // Cynthia - Adjusted for openai analysis and banner
         try {
             const cached = messageId ? await getCachedResult(messageId) : null;

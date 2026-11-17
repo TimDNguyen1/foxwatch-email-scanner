@@ -52,6 +52,7 @@ class EmailAnalysis(BaseModel):
     explanation: str
 
 # Dang - Load API keys from environment variables
+# Tim: helped integrate virustotal api key
 class Settings(BaseSettings):
     VT_API_KEY: str
     OPENAI_API_KEY: str
@@ -60,6 +61,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
+# Tim: get the API keys from .env file
 @lru_cache()
 def get_settings():
     print("Loading settings from .env file...")
@@ -74,6 +76,7 @@ openai_client = AsyncOpenAI(
 # Dang - VirusTotal API integration
 url = "https://www.virustotal.com/api/v3/urls"
 
+#Dang & Tim: virustotal scan function
 @app.post("/scan-url")
 async def virustotal_scan(url_to_scan: URLRequest):
     headers = {"accept": "application/json", "x-apikey": VTApiKey}
